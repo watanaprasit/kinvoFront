@@ -14,7 +14,7 @@ const LoginForm = () => {
   };
 
   return (
-    <form onSubmit={onSubmit} className="max-w-md mx-auto p-6 bg-white shadow-lg rounded-lg">
+    <form onSubmit={onSubmit} className="max-w-md mx-auto p-6 bg-black shadow-lg rounded-lg">
       <h2 className="text-2xl font-bold text-center mb-6 relative z-10">Welcome Back!</h2>
       <p className="text-center mt-2">New to Kinvo? <a href="/auth/signup" className="text-blue-500">Create an Account</a></p>
 
@@ -42,6 +42,14 @@ const LoginForm = () => {
         {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
       </div>
 
+      <Button
+        type="submit"
+        isLoading={isSubmitting}
+        className="primary w-full mt-6"
+      >
+        Sign In
+      </Button>
+
       <div className="text-center mt-6">Or</div>
 
       <Button
@@ -56,14 +64,6 @@ const LoginForm = () => {
         className="secondary w-full mt-3 flex items-center justify-center"
       >
         <FaApple className="mr-3" /> Sign in with Apple
-      </Button>
-
-      <Button
-        type="submit"
-        isLoading={isSubmitting}
-        className="primary w-full mt-6"
-      >
-        Sign In
       </Button>
 
       <div className="text-center mt-4 text-sm">
