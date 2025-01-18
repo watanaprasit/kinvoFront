@@ -1,14 +1,20 @@
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'; // Import BrowserRouter, Route, and Routes
+import LandingPage from './pages/landing/LandingPage';
+import Navigation from './pages/shared/Navigation';
+import SignupForm from './features/auth/components/SignupForm/SignupForm'; // Import the SignupForm component
+import { AuthProvider } from './features/auth/context/AuthContext'; // Import the AuthProvider
+import '../src/styles/tailwind/index.css';
+
 export default function App() {
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
-      <h1 className="text-4xl font-bold text-red-500">Welcome to Kinvo!</h1>
-      <p className="mt-4 text-lg text-gray-700">
-        Tailwind CSS is working perfectly!
-      </p>
-      <button className="mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-        Get Started
-      </button>
-    </div>
+    <Router> {/* Wrap your app in Router */}
+      <AuthProvider> {/* Wrap your entire app in the AuthProvider */}
+        <Navigation />
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/auth/register" element={<SignupForm />} /> {/* Route for Register page */}
+        </Routes>
+      </AuthProvider>
+    </Router>
   );
 }
-

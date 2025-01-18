@@ -19,6 +19,7 @@ body {
   min-height: 100vh;
   display: flex;
   place-items: center;
+  justify-content: center; /* Ensure content is centered both vertically and horizontally */
 }
 
 /* Styling links */
@@ -45,6 +46,7 @@ button:focus-visible {
 /* Light theme overrides */
 @media (prefers-color-scheme: light) {
   :root {
+    /* Apply light theme specific styles */
     @apply text-gray-800 bg-white;
   }
 }

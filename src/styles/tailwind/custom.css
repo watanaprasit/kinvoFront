@@ -1,0 +1,22 @@
+/* Example color classes */
+.bg-primary {
+    background-color: #1F2937; /* Dark gray */
+  }
+  
+  .text-accent {
+    color: #F59E0B; /* Accent color */
+  }
+  
+  .text-white {
+    color: white;
+  }
+  
+  .text-2xl {
+    font-size: 1.5rem; /* Text size for titles */
+  }
+  
+  /* Optionally, add styles for the theme toggle */
+  button:hover {
+    cursor: pointer;
+  }
+  
