@@ -1,12 +1,51 @@
-import { useState } from 'react';
-import { FaGoogle, FaApple } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
 import { useLogin } from '../../hooks/UseLogin';
 import Button from '../../../../components/common/Button/index';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { handleSubmit, isSubmitting, emailError, passwordError } = useLogin();
+  const { handleSubmit, handleGoogleLogin, isSubmitting, emailError, passwordError } = useLogin();
+
+  useEffect(() => {
+    const loadGoogleScript = () => {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      document.body.appendChild(script);
+
+      script.onload = () => {
+        initializeGoogleSignIn();
+      };
+
+      return () => {
+        document.body.removeChild(script);
+      };
+    };
+
+    loadGoogleScript();
+  }, []);
+
+  const initializeGoogleSignIn = () => {
+    if (window.google) {
+      window.google.accounts.id.initialize({
+        client_id: '756781097319-h7bgtos2krue9i7ofu0c8lml2ur2kpc0.apps.googleusercontent.com',
+        callback: (response) => handleGoogleLogin(response.credential),
+        auto_select: false,
+      });
+
+      window.google.accounts.id.renderButton(
+        document.getElementById('googleButton'),
+        {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          width: '100%',
+        }
+      );
+    }
+  };
 
   const onSubmit = (e) => {
     e.preventDefault();
@@ -14,7 +53,7 @@ const LoginForm = () => {
   };
 
   return (
-    <form onSubmit={onSubmit} className="max-w-md mx-auto p-6 bg-black shadow-lg rounded-lg">
+    <form onSubmit={onSubmit} className="max-w-md mx-auto p-6 bg-white shadow-lg rounded-lg">
       <h2 className="text-2xl font-bold text-center mb-6 relative z-10">Welcome Back!</h2>
       <p className="text-center mt-2">New to Kinvo? <a href="/auth/signup" className="text-blue-500">Create an Account</a></p>
 
@@ -50,21 +89,13 @@ const LoginForm = () => {
         Sign In
       </Button>
 
-      <div className="text-center mt-6">Or</div>
+      <div className="flex items-center justify-center mt-6">
+        <div className="flex-grow border-t border-gray-300"></div>
+        <span className="mx-4 text-gray-400">Or</span>
+        <div className="flex-grow border-t border-gray-300"></div>
+      </div>
 
-      <Button
-        onClick={() => console.log('Google login clicked')}
-        className="primary w-full mt-3 flex items-center justify-center"
-      >
-        <FaGoogle className="mr-3" /> Sign in with Google
-      </Button>
-
-      <Button
-        onClick={() => console.log('Apple login clicked')}
-        className="secondary w-full mt-3 flex items-center justify-center"
-      >
-        <FaApple className="mr-3" /> Sign in with Apple
-      </Button>
+      <div id="googleButton" className="mt-3"></div>
 
       <div className="text-center mt-4 text-sm">
         By signing in, you agree to our <a href="/terms" className="text-blue-500">Terms of Service</a> and <a href="/privacy" className="text-blue-500">Privacy Policy</a>.

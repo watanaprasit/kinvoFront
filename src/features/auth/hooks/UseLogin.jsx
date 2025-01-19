@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { loginUser } from '../services/AuthService';
+import { loginUser, loginWithGoogle } from '../services/AuthService';
 import { useAuth } from '../context/AuthContext';
 
 export const useLogin = () => {
@@ -13,7 +13,6 @@ export const useLogin = () => {
     setPasswordError('');
     setIsSubmitting(true);
 
-    // Perform email and password validation
     if (!email) {
       setEmailError('Email is required');
       setIsSubmitting(false);
@@ -27,13 +26,29 @@ export const useLogin = () => {
 
     const result = await loginUser(email, password);
     if (result.success) {
-      login(result.user);  // Save user data to context
+      login(result.user);
     } else {
       setEmailError('Login failed');
     }
-
     setIsSubmitting(false);
   };
 
-  return { handleSubmit, isSubmitting, emailError, passwordError };
+  const handleGoogleLogin = async (idToken) => {
+    setIsSubmitting(true);
+    try {
+      const result = await loginWithGoogle(idToken);
+      if (result.success) {
+        login(result.user);
+      } else {
+        setEmailError('Google login failed');
+      }
+    } catch (error) {
+      setEmailError('An error occurred during Google login');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return { handleSubmit, handleGoogleLogin, isSubmitting, emailError, passwordError };
 };
+

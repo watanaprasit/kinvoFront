@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { signupUser } from '../services/AuthService';
+import { signupUser, signupWithGoogle } from '../services/AuthService';
 
 export const useSignup = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -13,7 +13,6 @@ export const useSignup = () => {
     setFullNameError('');
     setIsSubmitting(true);
 
-    // Perform validation
     if (!email) {
       setEmailError('Email is required');
       setIsSubmitting(false);
@@ -30,11 +29,9 @@ export const useSignup = () => {
       return;
     }
 
-    // Call the signup API
     const result = await signupUser(email, password, fullName);
-    
     if (result.success) {
-        alert('Signup successful! Please login.');
+      alert('Signup successful! Please login.');
     } else {
       setEmailError(result.error);
     }
@@ -42,5 +39,19 @@ export const useSignup = () => {
     setIsSubmitting(false);
   };
 
-  return { handleSubmit, isSubmitting, emailError, passwordError, fullNameError };
+  const handleGoogleSignup = async (idToken) => {
+    setIsSubmitting(true);
+
+    const result = await signupWithGoogle(idToken);
+    if (result.success) {
+      alert('Google signup successful! You are now logged in.');
+      window.location.href = '/dashboard'; // Redirect to the dashboard or desired page
+    } else {
+      alert('Google signup failed. Please try again.');
+    }
+
+    setIsSubmitting(false);
+  };
+
+  return { handleSubmit, handleGoogleSignup, isSubmitting, emailError, passwordError, fullNameError };
 };

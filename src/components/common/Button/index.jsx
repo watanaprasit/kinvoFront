@@ -8,7 +8,7 @@ const Button = ({ onClick, type = 'button', isLoading, children, className }) =>
       onClick={onClick}
       disabled={isLoading}
       className={className}
-      isLoading={isLoading}
+      $isLoading={isLoading} // Use `$isLoading` for styled-components to differentiate
     >
       {isLoading ? 'Loading...' : children}
     </StyledButton>
@@ -24,3 +24,4 @@ Button.propTypes = {
 };
 
 export default Button;
+
