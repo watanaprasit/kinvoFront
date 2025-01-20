@@ -1,25 +1,45 @@
-import { BASE_URL } from "../../../library/constants/routes";
+import { API_ROUTES } from "../../../library/constants/routes";
 
-export const signupUser = async (email, password, fullName) => {
-  const response = await fetch(`${BASE_URL}/api/v1/auth/register`, {
-    method: 'POST',
-    body: JSON.stringify({ email, password, full_name: fullName }),
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+export const signupUser = async (email, password, fullName, slug = null) => {
+  try {
+    const response = await fetch(API_ROUTES.AUTH.REGISTER, {
+      method: 'POST',
+      body: JSON.stringify({ 
+        email, 
+        password, 
+        full_name: fullName,
+        ...(slug && { slug }) 
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-  const data = await response.json();
-  if (response.ok) {
-    return { success: true, data };
-  } else {
-    return { success: false, error: data.detail || 'Signup failed' };
+    const data = await response.json();
+    
+    if (response.ok) {
+      return { 
+        success: true, 
+        data,
+        email: data.email,
+        name: data.full_name,
+        slug: data.slug 
+      };
+    } else {
+      throw new Error(data.detail || 'Signup failed');
+    }
+  } catch (error) {
+    console.error('Signup error:', error);
+    return { 
+      success: false, 
+      error: error.message || 'An error occurred during signup' 
+    };
   }
 };
 
 export const loginUser = async (email, password) => {
   try {
-    const response = await fetch(`${BASE_URL}/api/v1/auth/login`, {
+    const response = await fetch(API_ROUTES.AUTH.LOGIN, {
       method: 'POST',
       body: JSON.stringify({ email, password }),
       headers: {
@@ -27,53 +47,32 @@ export const loginUser = async (email, password) => {
       },
     });
 
-    if (!response.ok) {
-      throw new Error('Login failed. Please check your email and password.');
-    }
-
     const data = await response.json();
-    if (data.access_token) {
+    if (response.ok && data.access_token) {
       localStorage.setItem('access_token', data.access_token);
-      return { success: true, user: { email } };
+      return { 
+        success: true, 
+        user: { 
+          email, 
+          slug: data.slug,
+          name: data.full_name 
+        } 
+      };
     }
 
-    return { success: false };
+    throw new Error('Login failed. Please check your email and password.');
   } catch (error) {
     console.error("Login error: ", error);
-    return { success: false };
-  }
-};
-
-export const loginWithGoogle = async (idToken) => {
-  try {
-    const response = await fetch(`${BASE_URL}/api/v1/auth/google/callback`, {
-      method: 'POST',
-      body: JSON.stringify({ id_token: idToken }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Google login failed.');
-    }
-
-    const data = await response.json();
-    if (data.access_token) {
-      localStorage.setItem('access_token', data.access_token);
-      return { success: true, user: { email: data.email } };
-    }
-
-    return { success: false };
-  } catch (error) {
-    console.error('Google login error:', error);
-    return { success: false };
+    return { 
+      success: false,
+      error: error.message || 'Login failed' 
+    };
   }
 };
 
 export const signupWithGoogle = async (idToken) => {
   try {
-    const response = await fetch(`${BASE_URL}/api/v1/auth/google/callback`, {
+    const response = await fetch(API_ROUTES.AUTH.GOOGLE_CALLBACK, {
       method: 'POST',
       body: JSON.stringify({ id_token: idToken }),
       headers: {
@@ -81,19 +80,57 @@ export const signupWithGoogle = async (idToken) => {
       },
     });
 
-    if (!response.ok) {
-      throw new Error('Google signup failed.');
-    }
-
     const data = await response.json();
-    if (data.access_token) {
-      localStorage.setItem('access_token', data.access_token);
-      return { success: true, user: { email: data.email } };
+    
+    if (response.ok) {
+      if (data.access_token) {
+        localStorage.setItem('access_token', data.access_token);
+      }
+      return { 
+        success: true,
+        email: data.email,
+        name: data.full_name,
+        slug: data.slug
+      };
     }
 
-    return { success: false };
+    throw new Error(data.detail || 'Google signup failed');
   } catch (error) {
     console.error('Google signup error:', error);
-    return { success: false };
+    return { 
+      success: false,
+      error: error.message || 'Failed to signup with Google' 
+    };
+  }
+};
+
+export const updateUserSlug = async (slug) => {
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    const response = await fetch(API_ROUTES.USERS.UPDATE_SLUG, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ slug })
+    });
+
+    const data = await response.json();
+    return {
+      success: response.ok,
+      data: response.ok ? data : null,
+      error: !response.ok ? data.detail : null
+    };
+  } catch (error) {
+    console.error('Update slug error:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to update slug'
+    };
   }
 };

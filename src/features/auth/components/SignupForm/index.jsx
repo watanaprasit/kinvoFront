@@ -1,12 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useSignup } from '../../hooks/useSignup';
+import { useNavigate } from 'react-router-dom';
 import Button from '../../../../components/common/Button/index';
 
 const SignupForm = () => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
-  const { handleSubmit, handleGoogleSignup, isSubmitting, emailError, passwordError, fullNameError } = useSignup();
+  const [isValidatingEmail, setIsValidatingEmail] = useState(false);
+  const navigate = useNavigate();
+  const { 
+    handleSubmit, 
+    handleGoogleSignup, 
+    isSubmitting, 
+    emailError, 
+    passwordError, 
+    fullNameError,
+    validateEmail // Add this to your useSignup hook
+  } = useSignup();
 
   useEffect(() => {
     const loadGoogleScript = () => {
@@ -32,7 +43,7 @@ const SignupForm = () => {
     if (window.google) {
       window.google.accounts.id.initialize({
         client_id: '756781097319-h7bgtos2krue9i7ofu0c8lml2ur2kpc0.apps.googleusercontent.com',
-        callback: (response) => handleGoogleSignup(response.credential), // Use the hook's handleGoogleSignup
+        callback: (response) => handleGoogleSignup(response.credential),
         auto_select: false,
       });
 
@@ -48,9 +59,48 @@ const SignupForm = () => {
     }
   };
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    handleSubmit(email, password, name); // Call the hook's handleSubmit function
+    setIsValidatingEmail(true);
+    
+    try {
+      // First validate the email
+      const isValidEmail = await validateEmail(email);
+      
+      if (isValidEmail) {
+        // Store form data in sessionStorage for the slug registration page
+        sessionStorage.setItem('registrationData', JSON.stringify({
+          email,
+          name,
+          password,
+          timestamp: Date.now() // Add timestamp for expiry checking
+        }));
+        
+        // Redirect to slug registration
+        navigate('/auth/select-slug');
+      } else {
+        setEmailError('Please enter a valid email address');
+      }
+    } catch (error) {
+      setEmailError('Error validating email. Please try again.');
+    } finally {
+      setIsValidatingEmail(false);
+    }
+  };
+
+  // Handle Google signup success
+  const handleGoogleSuccess = async (credential) => {
+    const response = await handleGoogleSignup(credential);
+    if (response.success) {
+      // Store Google data and redirect to slug selection
+      sessionStorage.setItem('registrationData', JSON.stringify({
+        email: response.email,
+        name: response.name,
+        googleCredential: credential,
+        timestamp: Date.now()
+      }));
+      navigate('/auth/select-slug');
+    }
   };
 
   return (
@@ -103,10 +153,10 @@ const SignupForm = () => {
 
       <Button
         type="submit"
-        isLoading={isSubmitting}
+        isLoading={isSubmitting || isValidatingEmail}
         className="primary w-full mt-6"
       >
-        {isSubmitting ? 'Submitting...' : 'Create Account'}
+        {isValidatingEmail ? 'Validating Email...' : isSubmitting ? 'Submitting...' : 'Create Account'}
       </Button>
 
       <div className="text-center mt-4 text-sm">

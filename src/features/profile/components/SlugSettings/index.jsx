@@ -1,32 +1,24 @@
+// features/profile/components/SlugSettings/index.jsx
 import { useState } from 'react';
 import { useAuth } from '../../../../context/AuthContext';
+import userApi from '../../../../services/api/user';
 
 const SlugSettings = () => {
   const [slug, setSlug] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const { user } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     try {
-      const response = await fetch('/api/v1/users/me/slug', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ slug }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail);
-      }
-
-      // Handle success (e.g., show notification, update user context)
+      await userApi.updateSlug(slug);
+      setSuccess('Custom URL updated successfully!');
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.detail || 'Failed to update custom URL');
     }
   };
 
@@ -51,9 +43,17 @@ const SlugSettings = () => {
               placeholder="your-custom-url"
             />
           </div>
+          {user?.slug && (
+            <p className="text-sm text-gray-500 mt-1">
+              Current URL: kinvo.com/{user.slug}
+            </p>
+          )}
         </div>
         {error && (
           <p className="text-red-500 text-sm mb-4">{error}</p>
+        )}
+        {success && (
+          <p className="text-green-500 text-sm mb-4">{success}</p>
         )}
         <button
           type="submit"
