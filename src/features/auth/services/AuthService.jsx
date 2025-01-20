@@ -83,15 +83,29 @@ export const signupWithGoogle = async (idToken) => {
     const data = await response.json();
     
     if (response.ok) {
-      if (data.access_token) {
-        localStorage.setItem('access_token', data.access_token);
+      // Don't store the token yet if no slug is set
+      if (data.slug) {
+        // User already has a slug, complete the signup
+        if (data.access_token) {
+          localStorage.setItem('access_token', data.access_token);
+        }
+        return { 
+          success: true,
+          isComplete: true,
+          email: data.email,
+          name: data.full_name,
+          slug: data.slug
+        };
+      } else {
+        // User needs to set a slug
+        return {
+          success: true,
+          isComplete: false,
+          email: data.email,
+          name: data.full_name,
+          tempToken: data.access_token // Store this temporarily
+        };
       }
-      return { 
-        success: true,
-        email: data.email,
-        name: data.full_name,
-        slug: data.slug
-      };
     }
 
     throw new Error(data.detail || 'Google signup failed');

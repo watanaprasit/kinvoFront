@@ -40,14 +40,25 @@ const SlugRegistration = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-
+  
     try {
+      const registrationData = JSON.parse(sessionStorage.getItem('registrationData'));
+      
+      if (!registrationData) {
+        throw new Error('Registration data not found');
+      }
+  
       // Final availability check before submission
       const isSlugAvailable = await checkSlugAvailability(slug);
       
       if (isSlugAvailable) {
         const result = await updateUserSlug(slug);
         if (result.success) {
+          // Now store the access token and complete the registration
+          if (registrationData.tempToken) {
+            localStorage.setItem('access_token', registrationData.tempToken);
+          }
+          sessionStorage.removeItem('registrationData');
           navigate('/dashboard');
         }
       }

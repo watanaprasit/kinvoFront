@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { signupUser, signupWithGoogle } from '../services/AuthService';
-import { useNavigate } from 'react-router-dom';
 import { validateEmailFormat, validateRequired, validateKnownEmailProvider } from '../../../library/utils/validators';
 
 export const useSignup = () => {
@@ -8,7 +7,6 @@ export const useSignup = () => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [fullNameError, setFullNameError] = useState('');
-  const navigate = useNavigate();
 
   const handleSubmit = async (email, password, fullName, slug = null) => {
     try {
@@ -20,42 +18,46 @@ export const useSignup = () => {
       // Validate required fields
       if (!validateRequired(email)) {
         setEmailError('Email is required');
-        return false;
+        return { success: false };
       }
       if (!validateRequired(password)) {
         setPasswordError('Password is required');
-        return false;
+        return { success: false };
       }
       if (!validateRequired(fullName)) {
         setFullNameError('Full name is required');
-        return false;
+        return { success: false };
       }
 
       // Validate email format and provider
       if (!validateEmailFormat(email)) {
         setEmailError('Please enter a valid email address');
-        return false;
+        return { success: false };
       }
       if (!validateKnownEmailProvider(email)) {
         setEmailError('Please use a known email provider');
-        return false;
+        return { success: false };
       }
 
       // Submit registration
       const result = await signupUser(email, password, fullName, slug);
       
       if (result.success) {
-        navigate('/dashboard');
-        return true;
+        // Instead of navigating, return the success result
+        return {
+          success: true,
+          email: result.email,
+          name: fullName
+        };
       } else {
         setEmailError(result.error);
-        return false;
+        return { success: false };
       }
 
     } catch (error) {
       console.error('Signup error:', error);
       setEmailError('An error occurred during signup. Please try again.');
-      return false;
+      return { success: false };
     } finally {
       setIsSubmitting(false);
     }
@@ -67,13 +69,19 @@ export const useSignup = () => {
       const result = await signupWithGoogle(idToken);
       
       if (result.success) {
-        navigate('/dashboard');
-        return { success: true };
+        // Instead of navigating, return the success result with user data
+        return { 
+          success: true,
+          email: result.email,
+          name: result.name,
+          tempToken: result.tempToken
+        };
       } else {
         throw new Error(result.error || 'Google signup failed');
       }
     } catch (error) {
       console.error('Google signup error:', error);
+      setEmailError(error.message || 'Failed to sign up with Google');
       return { 
         success: false, 
         error: error.message || 'Failed to sign up with Google' 
@@ -83,11 +91,18 @@ export const useSignup = () => {
     }
   };
 
+  const validateEmail = async (email) => {
+    // Add email validation logic if needed
+    return validateEmailFormat(email) && validateKnownEmailProvider(email);
+  };
+
   return { 
     handleSubmit, 
     handleGoogleSignup,
+    validateEmail,
     isSubmitting, 
-    emailError, 
+    emailError,
+    setEmailError, 
     passwordError, 
     fullNameError 
   };

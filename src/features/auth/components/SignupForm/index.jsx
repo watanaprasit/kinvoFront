@@ -9,14 +9,16 @@ const SignupForm = () => {
   const [password, setPassword] = useState('');
   const [isValidatingEmail, setIsValidatingEmail] = useState(false);
   const navigate = useNavigate();
+  
   const { 
     handleSubmit, 
     handleGoogleSignup, 
     isSubmitting, 
     emailError, 
+    setEmailError,  // Make sure this is exported from useSignup
     passwordError, 
     fullNameError,
-    validateEmail // Add this to your useSignup hook
+    validateEmail 
   } = useSignup();
 
   useEffect(() => {
@@ -43,7 +45,8 @@ const SignupForm = () => {
     if (window.google) {
       window.google.accounts.id.initialize({
         client_id: '756781097319-h7bgtos2krue9i7ofu0c8lml2ur2kpc0.apps.googleusercontent.com',
-        callback: (response) => handleGoogleSignup(response.credential),
+        // Use the handleGoogleCredential function instead of handleGoogleSignup directly
+        callback: handleGoogleCredential,
         auto_select: false,
       });
 
@@ -59,6 +62,22 @@ const SignupForm = () => {
     }
   };
 
+  // New handler for Google credential
+  const handleGoogleCredential = async (response) => {
+    const result = await handleGoogleSignup(response.credential);
+    if (result.success) {
+      // Store registration data and redirect to slug selection
+      sessionStorage.setItem('registrationData', JSON.stringify({
+        email: result.email,
+        name: result.name,
+        tempToken: result.tempToken,
+        googleCredential: response.credential,
+        timestamp: Date.now()
+      }));
+      navigate('/auth/select-slug');
+    }
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
     setIsValidatingEmail(true);
@@ -68,16 +87,21 @@ const SignupForm = () => {
       const isValidEmail = await validateEmail(email);
       
       if (isValidEmail) {
-        // Store form data in sessionStorage for the slug registration page
-        sessionStorage.setItem('registrationData', JSON.stringify({
-          email,
-          name,
-          password,
-          timestamp: Date.now() // Add timestamp for expiry checking
-        }));
+        // Call the handleSubmit from useSignup
+        const result = await handleSubmit(email, password, name);
         
-        // Redirect to slug registration
-        navigate('/auth/select-slug');
+        if (result.success) {
+          // Store form data in sessionStorage for the slug registration page
+          sessionStorage.setItem('registrationData', JSON.stringify({
+            email,
+            name,
+            password,
+            timestamp: Date.now()
+          }));
+          
+          // Redirect to slug registration
+          navigate('/auth/select-slug');
+        }
       } else {
         setEmailError('Please enter a valid email address');
       }
@@ -85,21 +109,6 @@ const SignupForm = () => {
       setEmailError('Error validating email. Please try again.');
     } finally {
       setIsValidatingEmail(false);
-    }
-  };
-
-  // Handle Google signup success
-  const handleGoogleSuccess = async (credential) => {
-    const response = await handleGoogleSignup(credential);
-    if (response.success) {
-      // Store Google data and redirect to slug selection
-      sessionStorage.setItem('registrationData', JSON.stringify({
-        email: response.email,
-        name: response.name,
-        googleCredential: credential,
-        timestamp: Date.now()
-      }));
-      navigate('/auth/select-slug');
     }
   };
 

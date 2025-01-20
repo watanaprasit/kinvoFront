@@ -4,6 +4,7 @@ import Navigation from './pages/shared/Navigation';
 import SignupForm from './features/auth/components/SignupForm/index'; 
 import LoginForm from './features/auth/components/LoginForm';
 import SlugRegistration from './features/auth/components/SlugRegistration';
+import Dashboard from './pages/app/Dashboard';
 import { AuthProvider } from './features/auth/context/AuthContext'; 
 import '../src/styles/tailwind/index.css';
 
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/auth/register" element={<SignupForm />} /> 
           <Route path="/auth/signin" element={<LoginForm />} /> 
           <Route path="/auth/select-slug" element={<SlugRegistration />} />
+          <Route path="/dashboard" element={<Dashboard />} /> {/* Add this route */}
         </Routes>
       </AuthProvider>
     </Router>

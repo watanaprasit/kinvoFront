@@ -5,6 +5,8 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [isRegistrationComplete, setIsRegistrationComplete] = useState(true);
+
 
   const login = (userData) => {
     setUser(userData);
@@ -31,7 +33,9 @@ export const AuthProvider = ({ children }) => {
       login, 
       logout,
       updateUserProfile,
-      updateSlug
+      updateSlug,
+      isRegistrationComplete,
+      setIsRegistrationComplete
     }}>
       {children}
     </AuthContext.Provider>
