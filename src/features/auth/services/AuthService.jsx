@@ -70,11 +70,14 @@ export const loginUser = async (email, password) => {
   }
 };
 
-export const signupWithGoogle = async (idToken) => {
+export const signupWithGoogle = async (idToken, slug = null) => {
   try {
     const response = await fetch(API_ROUTES.AUTH.GOOGLE_CALLBACK, {
       method: 'POST',
-      body: JSON.stringify({ id_token: idToken }),
+      body: JSON.stringify({ 
+        id_token: idToken,
+        ...(slug && { slug })
+      }),
       headers: {
         'Content-Type': 'application/json',
       },
@@ -83,27 +86,24 @@ export const signupWithGoogle = async (idToken) => {
     const data = await response.json();
     
     if (response.ok) {
-      // Don't store the token yet if no slug is set
-      if (data.slug) {
-        // User already has a slug, complete the signup
+      if (data.user && data.user.slug) {
         if (data.access_token) {
           localStorage.setItem('access_token', data.access_token);
         }
         return { 
           success: true,
           isComplete: true,
-          email: data.email,
-          name: data.full_name,
-          slug: data.slug
+          email: data.user.email,
+          name: data.user.full_name,
+          slug: data.user.slug
         };
       } else {
-        // User needs to set a slug
         return {
           success: true,
           isComplete: false,
-          email: data.email,
-          name: data.full_name,
-          tempToken: data.access_token // Store this temporarily
+          email: data.user ? data.user.email : data.email,
+          name: data.user ? data.user.full_name : data.full_name,
+          tempToken: data.access_token
         };
       }
     }

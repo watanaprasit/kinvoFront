@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../../../../components/common/Button';
 import { useSlugRegistration } from '../../hooks/useSlugRegistration';
 import { useDebounce } from '../../hooks/useDebounce';
+import { CheckCircle } from 'lucide-react'; // Import the check icon
 
 const SlugRegistration = () => {
   const [slug, setSlug] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const debouncedSlug = useDebounce(slug, 500);
+  const debouncedSlug = useDebounce(slug, 1000); // Increased to 1 second
   
   const {
     isChecking,
@@ -18,7 +19,6 @@ const SlugRegistration = () => {
     updateUserSlug
   } = useSlugRegistration();
 
-  // Check availability when slug changes
   useEffect(() => {
     if (debouncedSlug && debouncedSlug.length >= 3) {
       checkSlugAvailability(debouncedSlug);
@@ -98,7 +98,7 @@ const SlugRegistration = () => {
       <form onSubmit={handleSubmit}>
         <div className="mt-4">
           <label htmlFor="slug" className="block text-gray-700">Custom URL:</label>
-          <div className="flex items-center mt-2">
+          <div className="flex items-center mt-2 relative">
             <span className="text-gray-500 bg-gray-100 px-3 py-3 rounded-l-md border border-r-0">
               kinvo.com/
             </span>
@@ -109,11 +109,20 @@ const SlugRegistration = () => {
               onChange={handleSlugChange}
               minLength={3}
               maxLength={50}
-              className={`flex-1 p-3 border rounded-r-md focus:outline-none focus:ring-2 transition-colors ${getStatusColor()}`}
+              className={`flex-1 p-3 border rounded-r-md focus:outline-none focus:ring-2 transition-colors pr-10 ${getStatusColor()}`}
               placeholder="your-custom-url"
               required
               disabled={isSubmitting}
             />
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <CheckCircle 
+                className={`w-5 h-5 transition-all duration-200 ${
+                  isAvailable && !isChecking 
+                    ? 'text-green-500'
+                    : 'text-gray-300'
+                }`}
+              />
+            </div>
           </div>
           <div className="mt-1 min-h-[20px]">
             {slug && (
@@ -136,10 +145,10 @@ const SlugRegistration = () => {
           type="submit"
           isLoading={isSubmitting}
           disabled={!isAvailable || isChecking || isSubmitting || !slug}
-          className={`w-full mt-6 ${
+          className={`w-full mt-6 transition-all duration-200 ${
             isAvailable && !isChecking && !isSubmitting && slug
-              ? 'bg-blue-600 hover:bg-blue-700'
-              : 'bg-gray-400 cursor-not-allowed'
+              ? 'bg-blue-600 hover:bg-blue-700 opacity-100'
+              : 'bg-gray-400 cursor-not-allowed opacity-50'
           }`}
         >
           {isSubmitting ? 'Setting up your profile...' : 'Continue'}

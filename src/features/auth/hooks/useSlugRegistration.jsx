@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { API_ROUTES } from '../../../library/constants/routes';
 
 export const useSlugRegistration = () => {
@@ -6,8 +6,8 @@ export const useSlugRegistration = () => {
   const [isAvailable, setIsAvailable] = useState(false);
   const [error, setError] = useState(null);
 
-  const checkSlugAvailability = async (slug) => {
-    if (!slug) {
+  const checkSlugAvailability = useCallback(async (slugToCheck) => {
+    if (!slugToCheck) {
       setIsAvailable(false);
       setError('Username is required');
       return false;
@@ -17,34 +17,26 @@ export const useSlugRegistration = () => {
     setError(null);
 
     try {
-      const response = await fetch(API_ROUTES.USERS.BY_SLUG(slug));
-      
-      // If we get a user back, the slug is taken
+      const response = await fetch(API_ROUTES.USERS.CHECK_SLUG(slugToCheck));
       const data = await response.json();
-      const available = !data || response.status === 404;
       
-      setIsAvailable(available);
-      if (!available) {
-        setError('This username is already taken');
+      if (response.ok) {
+        setIsAvailable(data.available);
+        setError(data.available ? null : 'This username is already taken');
+        return data.available;
       }
-
-      return available;
+      
+      throw new Error('Unexpected response from server');
     } catch (error) {
-      // If we get a 404, the slug is available
-      if (error.response?.status === 404) {
-        setIsAvailable(true);
-        return true;
-      }
-      
       setError('Error checking username availability');
       setIsAvailable(false);
       return false;
     } finally {
       setIsChecking(false);
     }
-  };
+  }, []);
 
-  const updateUserSlug = async (slug) => {
+  const updateUserSlug = async (slugToUpdate) => {
     try {
       const token = localStorage.getItem('access_token');
       if (!token) {
@@ -52,25 +44,26 @@ export const useSlugRegistration = () => {
       }
 
       const response = await fetch(API_ROUTES.USERS.UPDATE_SLUG, {
-        method: 'PUT', // Changed to PUT to match backend
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ slug })
+        body: JSON.stringify({ slug: slugToUpdate }),
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.detail || 'Failed to update username');
       }
 
       return { success: true, data };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error.message || 'Failed to update username'
+      console.error('Update slug error:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to update username',
       };
     }
   };
@@ -80,6 +73,6 @@ export const useSlugRegistration = () => {
     isAvailable,
     error,
     checkSlugAvailability,
-    updateUserSlug
+    updateUserSlug,
   };
 };

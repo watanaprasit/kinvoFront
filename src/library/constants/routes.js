@@ -10,7 +10,8 @@ export const API_ROUTES = {
         PROFILE: `${BASE_URL}/api/v1/users`,
         ME: `${BASE_URL}/api/v1/users/me`,
         BY_SLUG: (slug) => `${BASE_URL}/api/v1/users/${slug}`,
-        UPDATE_SLUG: `${BASE_URL}/api/v1/users/me/slug`
+        UPDATE_SLUG: `${BASE_URL}/api/v1/users/update-slug`, // Updated endpoint
+        CHECK_SLUG: (slug) => `${BASE_URL}/api/v1/users/check-slug/${slug}` // New endpoint
     }
 };
 
