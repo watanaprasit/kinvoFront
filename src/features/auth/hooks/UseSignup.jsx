@@ -63,18 +63,21 @@ export const useSignup = () => {
     }
   };
 
-  const handleGoogleSignup = async (idToken) => {
+  const handleGoogleSignup = async (credential) => {
     try {
       setIsSubmitting(true);
-      const result = await signupWithGoogle(idToken);
+      
+      console.log('Google credential received:', credential); // Debug log
+      
+      const result = await signupWithGoogle(credential);
+      console.log('Signup result:', result); // Debug log
       
       if (result.success) {
-        // Instead of navigating, return the success result with user data
         return { 
           success: true,
           email: result.email,
           name: result.name,
-          tempToken: result.tempToken
+          idToken: result.idToken || credential // Keep original credential as fallback
         };
       } else {
         throw new Error(result.error || 'Google signup failed');

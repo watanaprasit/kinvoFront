@@ -3,22 +3,42 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../../../../components/common/Button';
 import { useSlugRegistration } from '../../hooks/useSlugRegistration';
 import { useDebounce } from '../../hooks/useDebounce';
-import { CheckCircle } from 'lucide-react'; // Import the check icon
+import { CheckCircle } from 'lucide-react';
+import { signupWithGoogle } from '../../services/AuthService';
 
 const SlugRegistration = () => {
   const [slug, setSlug] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
-  const debouncedSlug = useDebounce(slug, 1000); // Increased to 1 second
+  const debouncedSlug = useDebounce(slug, 1000);
   
   const {
     isChecking,
     isAvailable,
-    error,
+    checkError,
     checkSlugAvailability,
-    updateUserSlug
   } = useSlugRegistration();
 
+
+  useEffect(() => {
+    // Validate registration data exists
+    const regData = sessionStorage.getItem('registrationData');
+    if (!regData) {
+      navigate('/auth/signup');
+      return;
+    }
+
+    try {
+      const parsedData = JSON.parse(regData);
+      if (!parsedData.email || (!parsedData.googleCredential && !parsedData.password)) {
+        navigate('/auth/signup');
+      }
+    } catch (e) {
+      navigate('/auth/signup');
+    }
+  }, [navigate]);
+  
   useEffect(() => {
     if (debouncedSlug && debouncedSlug.length >= 3) {
       checkSlugAvailability(debouncedSlug);
@@ -26,7 +46,6 @@ const SlugRegistration = () => {
   }, [debouncedSlug, checkSlugAvailability]);
 
   const validateSlug = (value) => {
-    // Only allow lowercase letters, numbers, and hyphens
     return /^[a-z0-9-]+$/.test(value);
   };
 
@@ -34,12 +53,14 @@ const SlugRegistration = () => {
     const value = e.target.value.toLowerCase();
     if (value === '' || validateSlug(value)) {
       setSlug(value);
+      setError('');
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError('');
   
     try {
       const registrationData = JSON.parse(sessionStorage.getItem('registrationData'));
@@ -47,23 +68,34 @@ const SlugRegistration = () => {
       if (!registrationData) {
         throw new Error('Registration data not found');
       }
-  
-      // Final availability check before submission
+
+      // Final availability check
       const isSlugAvailable = await checkSlugAvailability(slug);
       
-      if (isSlugAvailable) {
-        const result = await updateUserSlug(slug);
-        if (result.success) {
-          // Now store the access token and complete the registration
-          if (registrationData.tempToken) {
-            localStorage.setItem('access_token', registrationData.tempToken);
-          }
-          sessionStorage.removeItem('registrationData');
-          navigate('/dashboard');
-        }
+      if (!isSlugAvailable) {
+        throw new Error('This URL is no longer available');
+      }
+
+      let result;
+      
+      if (registrationData.googleCredential) {
+        // Complete Google signup
+        result = await signupWithGoogle(registrationData.googleCredential, slug);
+      } else {
+        // Handle regular signup
+        // Add your regular signup completion code here if needed
+      }
+
+      if (result?.success && result?.isComplete) {
+        // Clear registration data and redirect
+        sessionStorage.removeItem('registrationData');
+        navigate('/dashboard');
+      } else {
+        throw new Error(result?.error || 'Failed to complete registration');
       }
     } catch (err) {
       console.error('Error during slug registration:', err);
+      setError(err.message || 'Failed to complete registration');
     } finally {
       setIsSubmitting(false);
     }
@@ -91,9 +123,23 @@ const SlugRegistration = () => {
     }
   };
 
+  const getStatusMessage = () => {
+    if (isChecking) return 'Checking availability...';
+    if (error) return error;
+    if (!isAvailable && slug.length >= 3) return 'This URL is already taken';
+    if (isAvailable) return 'This URL is available!';
+    return 'Only lowercase letters, numbers, and hyphens are allowed';
+  };
+
   return (
     <div className="max-w-md mx-auto p-6 bg-white shadow-lg rounded-lg">
       <h2 className="text-2xl font-bold text-center mb-6">Choose Your Custom URL</h2>
+      
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
+          {error}
+        </div>
+      )}
       
       <form onSubmit={handleSubmit}>
         <div className="mt-4">
@@ -129,13 +175,10 @@ const SlugRegistration = () => {
               <p className={`text-sm ${
                 isChecking ? 'text-blue-500' :
                 isAvailable ? 'text-green-500' :
-                error ? 'text-red-500' :
+                error || (!isAvailable && slug.length >= 3) ? 'text-red-500' :
                 'text-gray-500'
               }`}>
-                {isChecking ? 'Checking availability...' :
-                 isAvailable ? 'This URL is available!' :
-                 error ? error :
-                 'Only lowercase letters, numbers, and hyphens are allowed'}
+                {getStatusMessage()}
               </p>
             )}
           </div>

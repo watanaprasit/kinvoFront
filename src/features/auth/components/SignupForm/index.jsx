@@ -64,17 +64,22 @@ const SignupForm = () => {
 
   // New handler for Google credential
   const handleGoogleCredential = async (response) => {
+    console.log('Google response:', response); // Debug log
+    
     const result = await handleGoogleSignup(response.credential);
+    console.log('Signup result:', result); // Debug log
+    
     if (result.success) {
       // Store registration data and redirect to slug selection
       sessionStorage.setItem('registrationData', JSON.stringify({
         email: result.email,
         name: result.name,
-        tempToken: result.tempToken,
-        googleCredential: response.credential,
+        googleCredential: response.credential, // Store the original credential
         timestamp: Date.now()
       }));
       navigate('/auth/select-slug');
+    } else {
+      console.error('Google signup failed:', result.error);
     }
   };
 
