@@ -1,8 +1,12 @@
+import { DashboardHeader } from '../../features/dashboard/components/DashboardHeader';
+
 export default function Dashboard() {
-    return (
-      <div>
-        <h1>Dashboard</h1>
-        
-      </div>
-    );
-  }
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <DashboardHeader />
+      <main className="p-6">
+        WELCOME TO KINVO!
+      </main>
+    </div>
+  );
+}

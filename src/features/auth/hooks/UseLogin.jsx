@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { loginUser, signupWithGoogle } from '../services/AuthService';
+import { loginUser, loginWithGoogle } from '../services/AuthService';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -46,14 +46,10 @@ export const useLogin = () => {
   const handleGoogleLogin = async (idToken) => {
     try {
       setIsSubmitting(true);
-      const result = await signupWithGoogle(idToken); // Using signupWithGoogle as it handles both signup and login
+      const result = await loginWithGoogle(idToken); // Using loginWithGoogle instead of signupWithGoogle
       
       if (result.success) {
-        login({
-          email: result.email,
-          name: result.name,
-          slug: result.slug
-        });
+        login(result.user);
         navigate('/dashboard');
         return { success: true };
       } else {

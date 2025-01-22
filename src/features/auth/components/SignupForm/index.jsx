@@ -15,7 +15,7 @@ const SignupForm = () => {
     handleGoogleSignup, 
     isSubmitting, 
     emailError, 
-    setEmailError,  // Make sure this is exported from useSignup
+    setEmailError,  
     passwordError, 
     fullNameError,
     validateEmail 
@@ -64,10 +64,8 @@ const SignupForm = () => {
 
   // New handler for Google credential
   const handleGoogleCredential = async (response) => {
-    console.log('Google response:', response); // Debug log
     
     const result = await handleGoogleSignup(response.credential);
-    console.log('Signup result:', result); // Debug log
     
     if (result.success) {
       // Store registration data and redirect to slug selection

@@ -29,7 +29,6 @@ export const signupUser = async (email, password, fullName, slug = null) => {
       throw new Error(data.detail || 'Signup failed');
     }
   } catch (error) {
-    console.error('Signup error:', error);
     return { 
       success: false, 
       error: error.message || 'An error occurred during signup' 
@@ -62,7 +61,6 @@ export const loginUser = async (email, password) => {
 
     throw new Error('Login failed. Please check your email and password.');
   } catch (error) {
-    console.error("Login error: ", error);
     return { 
       success: false,
       error: error.message || 'Login failed' 
@@ -70,106 +68,50 @@ export const loginUser = async (email, password) => {
   }
 };
 
-// export const signupWithGoogle = async (idToken, slug = null) => {
-//   try {
-//     // Validate input
-//     if (!idToken) {
-//       throw new Error('ID token is required');
-//     }
+export const loginWithGoogle = async (idToken) => {
+  try {
+    if (!idToken) {
+      throw new Error('ID token is required');
+    }
 
-//     const requestBody = {
-//       id_token: idToken,
-//       ...(slug && { slug })
-//     };
+    const response = await fetch(API_ROUTES.AUTH.GOOGLE_CALLBACK, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id_token: idToken,
+        auth_type: 'google',
+        is_login: true  // New flag to indicate this is a login attempt
+      })
+    });
 
-//     console.log('Sending Google signup request:', {
-//       url: API_ROUTES.AUTH.GOOGLE_CALLBACK,
-//       body: requestBody
-//     });
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.detail || 'Google login failed');
+    }
 
-//     const response = await fetch(API_ROUTES.AUTH.GOOGLE_CALLBACK, {
-//       method: 'POST',
-//       headers: {
-//         'Content-Type': 'application/json',
-//       },
-//       body: JSON.stringify(requestBody)
-//     });
+    if (data.access_token) {
+      localStorage.setItem('access_token', data.access_token);
+    }
 
-//     const data = await response.json();
-//     console.log('Google signup response:', {
-//       status: response.status,
-//       data
-//     });
+    return {
+      success: true,
+      user: {
+        email: data.email || data.user?.email,
+        name: data.name || data.user?.full_name,
+        slug: data.slug || data.user?.slug
+      }
+    };
 
-//     if (!response.ok) {
-//       // Handle structured error responses
-//       const errorMessage = data.error?.message || 
-//                           data.detail?.message ||
-//                           data.detail ||
-//                           'Google signup failed';
-//       const errorCode = data.error?.code || 'UNKNOWN_ERROR';
-      
-//       throw new Error(JSON.stringify({
-//         message: errorMessage,
-//         code: errorCode
-//       }));
-//     }
-
-//     // First step - just validating the token
-//     if (!slug) {
-//       return {
-//         success: true,
-//         isComplete: false,
-//         email: data.email,
-//         name: data.name,
-//         idToken: data.idToken
-//       };
-//     }
-
-//     // Second step - complete registration with slug
-//     if (data.success && data.isComplete) {
-//       // Store access token if provided
-//       if (data.access_token) {
-//         localStorage.setItem('access_token', data.access_token);
-//       }
-      
-//       return {
-//         success: true,
-//         isComplete: true,
-//         user: {
-//           email: data.user.email,
-//           full_name: data.user.full_name,
-//           slug: data.user.slug
-//         }
-//       };
-//     }
-
-//     // Handle unexpected response format
-//     throw new Error('Invalid response format from server');
-
-//   } catch (error) {
-//     console.error('Google signup error:', {
-//       error,
-//       message: error.message,
-//       stack: error.stack
-//     });
-
-//     // Try to parse structured error if available
-//     let errorMessage = error.message;
-//     try {
-//       const parsedError = JSON.parse(error.message);
-//       errorMessage = parsedError.message;
-//     } catch (e) {
-//       // If parsing fails, use the original error message
-//     }
-
-//     return { 
-//       success: false,
-//       error: errorMessage || 'Failed to signup with Google'
-//     };
-//   }
-// };
-
+  } catch (error) {
+    return { 
+      success: false,
+      error: error.message || 'Failed to login with Google'
+    };
+  }
+};
 
 export const signupWithGoogle = async (idToken, slug = null) => {
   try {
@@ -183,11 +125,6 @@ export const signupWithGoogle = async (idToken, slug = null) => {
       ...(slug && { slug })
     };
 
-    console.log('Sending Google signup request:', {
-      url: API_ROUTES.AUTH.GOOGLE_CALLBACK,
-      body: requestBody
-    });
-
     const response = await fetch(API_ROUTES.AUTH.GOOGLE_CALLBACK, {
       method: 'POST',
       headers: {
@@ -197,10 +134,6 @@ export const signupWithGoogle = async (idToken, slug = null) => {
     });
 
     const data = await response.json();
-    console.log('Google signup response:', {
-      status: response.status,
-      data
-    });
     
     if (!response.ok) {
       const errorMessage = data.error?.message || 
@@ -215,9 +148,7 @@ export const signupWithGoogle = async (idToken, slug = null) => {
       throw new Error(errorMessage);
     }
 
-    // First step - just validating the token
     if (!slug) {
-      // Store the registration data in sessionStorage
       sessionStorage.setItem('registrationData', JSON.stringify({
         email: data.email,
         googleCredential: idToken,
@@ -233,7 +164,6 @@ export const signupWithGoogle = async (idToken, slug = null) => {
       };
     }
 
-    // Second step - with slug
     if (data.access_token) {
       localStorage.setItem('access_token', data.access_token);
     }
@@ -249,12 +179,6 @@ export const signupWithGoogle = async (idToken, slug = null) => {
     };
 
   } catch (error) {
-    console.error('Google signup error:', {
-      error,
-      message: error.message,
-      stack: error.stack
-    });
-
     return { 
       success: false,
       error: error.message || 'Failed to signup with Google'
@@ -285,10 +209,10 @@ export const updateUserSlug = async (slug) => {
       error: !response.ok ? data.detail : null
     };
   } catch (error) {
-    console.error('Update slug error:', error);
     return {
       success: false,
       error: error.message || 'Failed to update slug'
     };
   }
 };
+

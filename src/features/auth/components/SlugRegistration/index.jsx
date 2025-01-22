@@ -16,7 +16,6 @@ const SlugRegistration = () => {
   const {
     isChecking,
     isAvailable,
-    checkError,
     checkSlugAvailability,
   } = useSlugRegistration();
 

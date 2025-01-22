@@ -15,7 +15,6 @@ export const useSignup = () => {
       setFullNameError('');
       setIsSubmitting(true);
 
-      // Validate required fields
       if (!validateRequired(email)) {
         setEmailError('Email is required');
         return { success: false };
@@ -29,7 +28,6 @@ export const useSignup = () => {
         return { success: false };
       }
 
-      // Validate email format and provider
       if (!validateEmailFormat(email)) {
         setEmailError('Please enter a valid email address');
         return { success: false };
@@ -39,11 +37,9 @@ export const useSignup = () => {
         return { success: false };
       }
 
-      // Submit registration
       const result = await signupUser(email, password, fullName, slug);
       
       if (result.success) {
-        // Instead of navigating, return the success result
         return {
           success: true,
           email: result.email,
@@ -55,7 +51,6 @@ export const useSignup = () => {
       }
 
     } catch (error) {
-      console.error('Signup error:', error);
       setEmailError('An error occurred during signup. Please try again.');
       return { success: false };
     } finally {
@@ -67,23 +62,19 @@ export const useSignup = () => {
     try {
       setIsSubmitting(true);
       
-      console.log('Google credential received:', credential); // Debug log
-      
       const result = await signupWithGoogle(credential);
-      console.log('Signup result:', result); // Debug log
       
       if (result.success) {
         return { 
           success: true,
           email: result.email,
           name: result.name,
-          idToken: result.idToken || credential // Keep original credential as fallback
+          idToken: result.idToken || credential
         };
       } else {
         throw new Error(result.error || 'Google signup failed');
       }
     } catch (error) {
-      console.error('Google signup error:', error);
       setEmailError(error.message || 'Failed to sign up with Google');
       return { 
         success: false, 
@@ -95,7 +86,6 @@ export const useSignup = () => {
   };
 
   const validateEmail = async (email) => {
-    // Add email validation logic if needed
     return validateEmailFormat(email) && validateKnownEmailProvider(email);
   };
 
