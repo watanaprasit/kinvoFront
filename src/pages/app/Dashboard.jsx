@@ -1,4 +1,5 @@
 import { DashboardHeader } from '../../features/dashboard/components/DashboardHeader';
+import ProfilePage from './Profile';
 
 export default function Dashboard() {
   return (
@@ -7,6 +8,7 @@ export default function Dashboard() {
       <main className="p-6">
         WELCOME TO KINVO!
       </main>
+      <ProfilePage />
     </div>
   );
 }
