@@ -23,6 +23,7 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   const login = (userData) => {
+    console.log('Full User Data:', userData);
     setUser(userData);
   };
 

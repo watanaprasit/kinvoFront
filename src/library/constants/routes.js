@@ -7,6 +7,8 @@ export const API_ROUTES = {
         GOOGLE_CALLBACK: `${BASE_URL}/api/v1/auth/google/callback`, // Updated to match backend
     },
     USERS: {
+        PROFILE_BY_USER_ID: (userId) => `${BASE_URL}/api/v1/users/${userId}/profile`,
+        PROFILE_UPDATE: `${BASE_URL}/api/v1/users/profile`,
         PROFILE: `${BASE_URL}/api/v1/users/me/profile`,  // Endpoint for fetching the authenticated user's profile
         ME: `${BASE_URL}/api/v1/users/me`,
         BY_SLUG: (slug) => `${BASE_URL}/api/v1/users/${slug}`,

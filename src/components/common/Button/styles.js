@@ -1,13 +1,13 @@
 import styled from 'styled-components';
 
 export const StyledButton = styled.button.withConfig({
-  shouldForwardProp: (prop) => prop !== '$isLoading', // Prevent `$isLoading` from being passed to the DOM
+  shouldForwardProp: (prop) => prop !== '$isLoading',
 })`
-  padding: 12px;
-  width: 100%;
+  padding: 12px 24px;  // Add horizontal padding
+  width: auto;  // Change from 100% to auto
   font-weight: 600;
   border-radius: 20px;
-  display: flex;
+  display: inline-flex;  // Change to inline-flex
   align-items: center;
   justify-content: center;
   transition: background-color 0.3s ease, opacity 0.2s ease;

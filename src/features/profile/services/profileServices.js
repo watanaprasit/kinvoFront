@@ -1,30 +1,58 @@
-import { API_ROUTES } from "../../../library/constants/routes"; // Import API_ROUTES
+import { API_ROUTES } from "../../../library/constants/routes";
 
 export const ProfileService = {
-  async updateProfile(formData) {
-    const response = await fetch(API_ROUTES.USERS.PROFILE, {
-      method: 'PUT',
+  async getProfileByUserId(userId) {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    const response = await fetch(API_ROUTES.USERS.PROFILE_BY_USER_ID(userId), {
+      method: 'GET',
       headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      body: formData,
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
     });
 
     if (!response.ok) {
-      throw new Error('Failed to update profile');
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch profile: ${errorText}`);
     }
 
     return response.json();
   },
 
-  // New method to fetch profile by slug
-  async getProfileBySlug(slug) {
-    const response = await fetch(API_ROUTES.USERS.BY_SLUG(slug));
+  async updateProfile(formData) {
+    const response = await fetch(API_ROUTES.USERS.PROFILE_UPDATE, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: formData
+    });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch profile');
+      const errorText = await response.text();
+      throw new Error(`Failed to update profile: ${errorText}`);
     }
 
     return response.json();
   },
+
+  async checkSlugAvailability(slug) {
+    const response = await fetch(API_ROUTES.USERS.CHECK_SLUG(slug), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Slug availability check failed: ${errorText}`);
+    }
+
+    return response.json();
+  }
 };

@@ -1,46 +1,96 @@
-// src/features/profile/components/ProfileEditor/index.jsx
-import { useState } from 'react';
-import { useAuth } from '../../../../context/AuthContext';
-import { ProfileService } from '../../services/profile.service';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../../../auth/context/AuthContext';
+import { ProfileService } from '../../services/profileServices';
 import { StyledProfileEditor, PreviewContainer, EditorContainer } from './styles';
 
 const ProfileEditor = () => {
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const [profile, setProfile] = useState({
-    displayName: user?.displayName || '',
-    jobTitle: user?.jobTitle || '',
-    photoUrl: user?.photoUrl || ''
+    display_name: user?.name || user?.display_name || '',
+    slug: user?.slug || '',
+    photo_url: user?.photo_url || ''
   });
   const [previewFile, setPreviewFile] = useState(null);
+  const [slugAvailable, setSlugAvailable] = useState(true);
 
-  const handleInputChange = (e) => {
+  useEffect(() => {
+    console.log('User from AuthContext:', user);
+  }, [user]);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        // Log the entire user object to see its structure
+        console.log('FULL USER OBJECT:', user);
+
+        // Try to extract user ID from different possible fields
+        const userId = user?.id || user?.userId || user?.user_id;
+        
+        if (userId) {
+          const profileData = await ProfileService.getProfileByUserId(userId);
+          console.log('Fetched Profile Data:', profileData);
+          setProfile(prev => ({
+            ...prev,
+            ...profileData
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile:', error);
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
+
+  const handleInputChange = async (e) => {
     const { name, value } = e.target;
     setProfile(prev => ({
       ...prev,
       [name]: value
     }));
+
+    // Check slug availability if slug is being changed
+    if (name === 'slug') {
+      try {
+        const result = await ProfileService.checkSlugAvailability(value);
+        setSlugAvailable(result.available);
+      } catch (error) {
+        console.error('Slug availability check failed:', error);
+      }
+    }
   };
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setPreviewFile(URL.createObjectURL(file));
-      // Will be handled in form submission
+      const previewUrl = URL.createObjectURL(file);
+      setPreviewFile(file);
+      setProfile(prev => ({
+        ...prev,
+        photo_url: previewUrl
+      }));
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!slugAvailable) {
+      alert('Slug is not available');
+      return;
+    }
+
     try {
       const formData = new FormData();
-      formData.append('displayName', profile.displayName);
-      formData.append('jobTitle', profile.jobTitle);
+      formData.append('display_name', profile.display_name);
+      formData.append('slug', profile.slug);
+      
       if (previewFile) {
         formData.append('photo', previewFile);
       }
 
       const updatedProfile = await ProfileService.updateProfile(formData);
-      updateUser(updatedProfile);
+      setProfile(updatedProfile);
     } catch (error) {
       console.error('Error updating profile:', error);
     }
@@ -52,7 +102,7 @@ const ProfileEditor = () => {
         <form onSubmit={handleSubmit}>
           <div className="photo-upload">
             <img 
-              src={previewFile || profile.photoUrl || '/default-avatar.png'} 
+              src={profile.photo_url || 'https://api.dicebear.com/6.x/personas/svg?seed=dude'} 
               alt="Profile" 
             />
             <input 
@@ -65,36 +115,49 @@ const ProfileEditor = () => {
           <div className="form-group">
             <input
               type="text"
-              name="displayName"
-              value={profile.displayName}
+              name="display_name"
+              value={profile.display_name}
               onChange={handleInputChange}
               placeholder="Display Name"
+              required
             />
           </div>
 
           <div className="form-group">
             <input
               type="text"
-              name="jobTitle"
-              value={profile.jobTitle}
+              name="slug"
+              value={profile.slug}
               onChange={handleInputChange}
-              placeholder="Job Title"
+              placeholder="Profile Slug"
+              required
             />
+            {!slugAvailable && (
+              <p className="text-red-500">
+                This slug is already taken. Please choose another.
+              </p>
+            )}
           </div>
 
-          <button type="submit">Save Changes</button>
+          <button 
+            type="submit" 
+            disabled={!slugAvailable}
+          >
+            Save Changes
+          </button>
         </form>
       </EditorContainer>
 
       <PreviewContainer>
         <div className="preview-card">
           <img 
-            src={previewFile || profile.photoUrl || '/default-avatar.png'} 
+            src={profile.photo_url || 'https://api.dicebear.com/6.x/personas/svg?seed=dude'} 
             alt="Profile Preview" 
           />
-          <h3>{profile.displayName || 'Display Name'}</h3>
-          <p>{profile.jobTitle || 'Job Title'}</p>
+          <h3>{profile.display_name || 'Display Name'}</h3>
+          <p>{profile.slug || 'Profile Slug'}</p>
         </div>
+        <div className="app-name">Kinvo</div>
       </PreviewContainer>
     </StyledProfileEditor>
   );

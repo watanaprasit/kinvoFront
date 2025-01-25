@@ -1,41 +1,56 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
+import { useAuth } from '../../features/auth/context/AuthContext'; // Adjust import path as needed
 import { ProfileService } from '../../features/profile/services/profileServices';
+import ProfileEditor from '../../features/profile/components/ProfileEditor';
 
 const UserProfile = () => {
-  const { slug } = useParams();
+  const { userId } = useParams();
+  const { user } = useAuth();
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+// Add some console logs to debug
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        // Fetch user profile by slug
-        const profileData = await ProfileService.getProfileBySlug(slug);
+        const profileUserId = userId || user?.id;
+        
+        console.log('Attempting to fetch profile for userId:', profileUserId);
+        
+        if (!profileUserId) {
+          throw new Error('No user ID available');
+        }
+
+        const profileData = await ProfileService.getProfileByUserId(profileUserId);
+        
+        console.log('Fetched profile data:', profileData);
+        
         setUserData(profileData);
       } catch (error) {
         console.error('Error fetching user profile:', error);
+        setError(error);
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchUserProfile();
-  }, [slug]);
+  }, [userId, user]);
 
   if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error loading profile: {error.message}</div>;
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-4">{userData.full_name} Profile</h1>
-      <div>
-        <p>Email: {userData.email}</p>
-        <p>Location: {userData.location}</p>
-        {/* Add more profile fields here */}
-      </div>
-    </div>
-  );
-};
+  return <ProfileEditor 
+    initialProfile={{
+      displayName: userData.display_name,
+      slug: userData.slug,
+      photoUrl: userData.photo_url,
+      userId: userData.user_id
+    }} 
+    />; 
+  };
 
 const ProfilePage = () => {
   return (

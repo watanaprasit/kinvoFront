@@ -27,6 +27,7 @@ export const useLogin = () => {
 
       const result = await loginUser(email, password);
       if (result.success) {
+        console.log('LOGIN RESULT USER OBJECT:', result.user);
         login(result.user);
         navigate('/dashboard');
         return true;
