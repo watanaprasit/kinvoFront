@@ -21,3 +21,12 @@ export const Sidebar = styled.nav`
     transform: ${props => props.$isOpen ? 'translateX(0)' : 'translateX(-100%)'};
   }
 `;
+
+
+// export const Sidebar = styled.nav`
+//   transition: all 0.3s ease;
+  
+//   @media (max-width: 768px) {
+//     transform: ${props => props.$isOpen ? 'translateX(0)' : 'translateX(-100%)'};
+//   }
+// `;
