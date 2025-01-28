@@ -23,5 +23,7 @@ Kinvo is built with modern technologies to ensure a smooth user experience:
 - **QR Code Generation**: For sharing the digital business card in a format that’s easy to scan.
 - **Deployment**: Frontend hosted on [Netlify](https://www.netlify.com/), backend deployed on [Supabase](https://supabase.io/).
 
+# Kinvo SaaS - Digital Business Card Platform
+
 
 
