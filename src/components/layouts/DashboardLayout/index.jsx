@@ -10,7 +10,7 @@ export const DashboardLayout = ({
     return (
       <DashboardWrapper 
         className="min-h-screen bg-gray-50 flex flex-col"
-        $isMobileMenuOpen={isMobileMenuOpen}  // Note the $ prefix for transient props
+        $isMobileMenuOpen={isMobileMenuOpen}  
       >
         <DashboardHeader />
         <div className="flex flex-1">
