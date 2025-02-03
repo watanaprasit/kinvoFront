@@ -84,29 +84,43 @@ export const AuthProvider = ({ children }) => {
 
   const updateUserProfile = async (formData) => {
     if (!user?.id) {
-      throw new Error('User ID is required to update profile');
+        throw new Error('User ID is required to update profile');
     }
 
     try {
-      const updatedProfile = await ProfileService.updateProfile(user.id, formData);
-      
-      setUserProfile(updatedProfile);
-      setUser(prevUser => ({
-        ...prevUser,
-        profile: updatedProfile
-      }));
+        // Log the formData before sending
+        console.log('FormData being sent to ProfileService:', formData);
 
-      localStorage.setItem('user', JSON.stringify({
-        ...user,
-        profile: updatedProfile
-      }));
+        // Ensure formData is properly structured
+        const profileData = {
+            display_name: formData.display_name || userProfile.display_name,
+            slug: formData.slug || userProfile.slug,
+            photo: formData.photo || null
+        };
 
-      return updatedProfile;
+        const updatedProfile = await ProfileService.updateProfile(user.id, profileData);
+        
+        if (!updatedProfile) {
+            throw new Error('No profile data returned from update');
+        }
+
+        setUserProfile(updatedProfile);
+        setUser(prevUser => ({
+            ...prevUser,
+            profile: updatedProfile
+        }));
+
+        localStorage.setItem('user', JSON.stringify({
+            ...user,
+            profile: updatedProfile
+        }));
+
+        return updatedProfile;
     } catch (error) {
-      console.error('Error updating profile:', error);
-      throw error;
+        console.error('Error updating profile:', error);
+        throw error;
     }
-  };
+};
 
   const isAuthenticated = Boolean(user && localStorage.getItem('access_token'));
 

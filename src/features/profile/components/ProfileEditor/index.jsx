@@ -18,30 +18,36 @@ const ProfileEditor = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    console.log('userProfile:', userProfile);
-    console.log('photo_url:', userProfile?.photo_url);
     if (userProfile) {
+      console.log('Setting initial form data:', userProfile);  // Debug log
       setFormData({
         display_name: userProfile.display_name || user?.name || '',
         slug: userProfile.slug || user?.slug || '',
         photo_url: userProfile.photo_url || ''
       });
       setPreviewUrl(userProfile.photo_url || '');
-      console.log('Set previewUrl to:', userProfile.photo_url);
     }
   }, [userProfile, user]);
 
   const handleInputChange = async (e) => {
     const { name, value } = e.target;
     
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    console.log('Input changed:', name, value);  // Debug log
+    
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: value
+      };
+      console.log('New form data:', newData);  // Debug log
+      return newData;
+    });
 
     if (name === 'slug' && value.trim()) {
       try {
+        console.log('Checking slug availability for:', value);  // Debug log
         const result = await ProfileService.checkSlugAvailability(value);
+        console.log('Slug availability result:', result);  // Debug log
         setSlugAvailable(result.available);
       } catch (error) {
         console.error('Slug availability check failed:', error);
@@ -53,7 +59,6 @@ const ProfileEditor = () => {
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Create a local preview URL for the new file
       const localPreviewUrl = URL.createObjectURL(file);
       setPreviewFile(file);
       setPreviewUrl(localPreviewUrl);
@@ -71,35 +76,33 @@ const ProfileEditor = () => {
     setIsSubmitting(true);
     setSubmitError(null);
 
-    try {
-      const updateFormData = new FormData();
-      updateFormData.append('display_name', formData.display_name);
-      updateFormData.append('slug', formData.slug);
-      
-      if (previewFile) {
-        updateFormData.append('photo', previewFile);
-      }
+      try {
+        // Send as a regular object instead of FormData
+        const updateData = {
+          display_name: formData.display_name,
+          slug: formData.slug,
+          photo: previewFile || null  // Include photo if exists
+        };
 
-      const updatedProfile = await updateUserProfile(updateFormData);
-      
-      // Update the preview URL with the new photo_url from the response
-      if (updatedProfile.photo_url) {
-        setPreviewUrl(updatedProfile.photo_url);
+        const updatedProfile = await updateUserProfile(updateData);
+        
+        // Update the preview URL with the new photo_url from the response
+        if (updatedProfile.photo_url) {
+          setPreviewUrl(updatedProfile.photo_url);
+        }
+        
+        setPreviewFile(null);
+        alert('Profile updated successfully!');
+      } catch (error) {
+        console.error('Submit error:', error);  // Add this for debugging
+        setSubmitError(error.message || 'Failed to update profile');
+      } finally {
+        setIsSubmitting(false);
       }
-      
-      setPreviewFile(null);
-      alert('Profile updated successfully!');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      setSubmitError(error.message || 'Failed to update profile');
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   // Helper function to get the display image URL
   const getDisplayImageUrl = () => {
-    console.log('Current previewUrl:', previewUrl);
     if (previewUrl) {
       return previewUrl;
     }

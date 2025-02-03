@@ -7,6 +7,13 @@ export const ProfileService = {
             throw new Error('No authentication token found');
         }
         
+        // For FormData requests, only return Authorization header
+        if (contentType === null) {
+            return {
+                'Authorization': `Bearer ${token}`
+            };
+        }
+        
         return {
             'Authorization': `Bearer ${token}`,
             'Content-Type': contentType
@@ -82,38 +89,64 @@ export const ProfileService = {
     },
 
     async updateProfile(userId, data) {
-        if (!userId) {
-            throw new Error('User ID is required');
-        }
-
-        try {
-            const formData = new FormData();
-            
-            if (data.display_name) formData.append('display_name', data.display_name);
-            if (data.slug) formData.append('slug', data.slug);
-            if (data.photo) formData.append('photo', data.photo);
-
-            const response = await fetch(
-                API_ROUTES.USERS.PROFILE_UPDATE(userId),
-                {
-                    method: 'PUT',
-                    headers: this.getAuthHeaders(null),
-                    credentials: 'include',
-                    body: formData
-                }
-            );
-
-            if (!response.ok) {
-                const errorData = await response.text();
-                throw new Error(`Failed to update profile (${response.status}): ${errorData}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('updateProfile error:', error);
-            throw error;
-        }
-    },
+      try {
+          const formData = new FormData();
+          
+          // More detailed logging
+          console.log('Raw update data:', {
+              userId,
+              data,
+              display_name: data.display_name,
+              slug: data.slug,
+              photo: data.photo
+          });
+          
+          if (data.display_name) {
+              formData.append('display_name', data.display_name);
+          }
+          if (data.slug) {
+              formData.append('slug', data.slug);
+          }
+          if (data.photo) {
+              formData.append('photo', data.photo);
+          }
+          
+          // Log the actual FormData entries
+          console.log('FormData entries:');
+          for (let pair of formData.entries()) {
+              console.log(pair[0], pair[1]);
+          }
+          
+          const response = await fetch(
+              API_ROUTES.USERS.PROFILE_UPDATE,
+              {
+                  method: 'PUT',
+                  headers: this.getAuthHeaders(null),
+                  credentials: 'include',
+                  body: formData
+              }
+          );
+  
+          // Log the complete response
+          console.log('Response status:', response.status);
+          const responseText = await response.text();
+          console.log('Raw response:', responseText);
+          
+          if (!response.ok) {
+              try {
+                  const errorJson = JSON.parse(responseText);
+                  throw new Error(`Failed to update profile (${response.status}): ${errorJson.detail || responseText}`);
+              } catch {
+                  throw new Error(`Failed to update profile (${response.status}): ${responseText}`);
+              }
+          }
+  
+          return JSON.parse(responseText);
+          } catch (error) {
+              console.error('updateProfile error:', error);
+              throw error;
+          }
+      },
 
     async checkSlugAvailability(slug) {
         if (!slug) {
