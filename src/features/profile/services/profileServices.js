@@ -53,65 +53,90 @@ export const ProfileService = {
     },
 
     async getProfileByUserId(userId) {
-        if (!userId) {
-            throw new Error('User ID is required');
-        }
-
-        const response = await fetch(
-            API_ROUTES.USERS.PROFILE_BY_USER_ID(userId),
-            {
-                method: 'GET',
-                headers: this.getAuthHeaders(),
-                credentials: 'include'
-            }
-        );
-
-        if (!response.ok) {
-            if (response.status === 404) {
-                return null;
-            }
-            const errorData = await response.text();
-            throw new Error(`Failed to fetch profile (${response.status}): ${errorData}`);
-        }
-
-        return await response.json();
+      if (!userId) {
+          throw new Error('User ID is required');
+      }
+  
+      const response = await fetch(
+          API_ROUTES.USERS.PROFILE_BY_USER_ID(userId),
+          {
+              method: 'GET',
+              headers: this.getAuthHeaders(),
+              credentials: 'include'
+          }
+      );
+  
+      if (!response.ok) {
+          if (response.status === 404) {
+              return null;
+          }
+          const errorData = await response.text();
+          throw new Error(`Failed to fetch profile (${response.status}): ${errorData}`);
+      }
+  
+      return await response.json();
     },
-
 
     async updateProfile(userId, data) {
       const formData = new FormData();
       
-      // Ensure we're getting the exact values from the data object
       if (data instanceof FormData) {
-          // If data is already FormData, use it directly
+        const photo = data.get('photo');
+        if (photo instanceof File) {
+            const fileExt = photo.name.split('.').pop();
+            const uniqueId = crypto.randomUUID().replace(/-/g, '');
+            const fileName = `${uniqueId}.${fileExt}`;  // Remove userId from filename since it's in the folder path
+            
+            const renamedFile = new File([photo], fileName, {
+                type: photo.type
+            });
+            
+            data.delete('photo');
+            data.append('photo', renamedFile);
+            data.append('file_path', fileName);  // Just the filename, backend will handle the folder structure
+            
+            console.log('Uploading photo:', fileName);
+        }
+  
           return fetch(
               API_ROUTES.USERS.PROFILE_UPDATE,
               {
                   method: 'PUT',
                   headers: this.getAuthHeaders(null),
                   credentials: 'include',
-                  body: data  // Use the FormData directly
+                  body: data
               }
           ).then(async response => {
-              console.log('Response status:', response.status);
               const responseText = await response.text();
-              console.log('Response text:', responseText);
+              console.log('Profile update response:', responseText);
               
               if (!response.ok) {
                   throw new Error(`Failed to update profile (${response.status}): ${responseText}`);
               }
   
-              return JSON.parse(responseText);
+              try {
+                  return JSON.parse(responseText);
+              } catch (e) {
+                  throw new Error(`Invalid JSON response: ${responseText}`);
+              }
           });
       } else {
-          // If data is a regular object, create new FormData
+          // Handle regular object data
           if (data.display_name) formData.append('display_name', data.display_name);
           if (data.slug) formData.append('slug', data.slug);
-          if (data.photo) formData.append('photo', data.photo);
-          
-          // Log exact values being sent
-          for (let [key, value] of formData.entries()) {
-              console.log(`Sending ${key}:`, value);
+          if (data.photo) {
+              const fileExt = data.photo.name.split('.').pop();
+              const uniqueId = crypto.randomUUID().replace(/-/g, '');
+              const fileName = `${uniqueId}.${fileExt}`;  // Remove userId from filename
+              
+              const renamedFile = new File([data.photo], fileName, {
+                  type: data.photo.type
+              });
+              
+              formData.append('photo', renamedFile);
+              formData.append('file_path', fileName);
+              
+              console.log('Uploading photo:', fileName);
           }
           
           return fetch(
@@ -123,19 +148,21 @@ export const ProfileService = {
                   body: formData
               }
           ).then(async response => {
-              console.log('Response status:', response.status);
               const responseText = await response.text();
-              console.log('Response text:', responseText);
+              console.log('Profile update response:', responseText);
               
               if (!response.ok) {
                   throw new Error(`Failed to update profile (${response.status}): ${responseText}`);
               }
   
-              return JSON.parse(responseText);
+              try {
+                  return JSON.parse(responseText);
+              } catch (e) {
+                  throw new Error(`Invalid JSON response: ${responseText}`);
+              }
           });
       }
     },
-
 
     async checkSlugAvailability(slug) {
         if (!slug) {

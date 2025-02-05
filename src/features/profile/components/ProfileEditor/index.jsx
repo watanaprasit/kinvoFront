@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../auth/context/AuthContext';
 import { ProfileService } from '../../services/profileServices';
 import { StyledProfileEditor, PreviewContainer, EditorContainer } from './styles';
+
+const DEFAULT_AVATAR = 'https://api.dicebear.com/6.x/personas/svg?seed=dude';
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const VALID_TYPES = ['image/jpeg', 'image/png'];
 
 const ProfileEditor = () => {
   const { user, userProfile, error: authError, updateUserProfile, isLoading } = useAuth();
@@ -20,17 +24,29 @@ const ProfileEditor = () => {
 
   useEffect(() => {
     if (userProfile) {
-      setFormData({
-        display_name: userProfile.display_name || user?.name || '',
-        slug: userProfile.slug || user?.slug || '',
-        photo_url: userProfile.photo_url || ''
-      });
-      // Add timestamp to force image refresh when URL changes
-      setPreviewUrl(userProfile.photo_url ? `${userProfile.photo_url}?t=${Date.now()}` : '');
+        console.log('UserProfile data:', userProfile);
+        
+        setFormData({
+            display_name: userProfile.display_name || user?.name || '',
+            slug: userProfile.slug || user?.slug || '',
+            photo_url: userProfile.photo_url || ''
+        });
+        
+        if (userProfile.photo_url) {
+            try {
+                const url = new URL(userProfile.photo_url);
+                setPreviewUrl(url.toString());
+            } catch (e) {
+                console.error('Error setting preview URL:', e);
+                setPreviewUrl('');
+            }
+        } else {
+            setPreviewUrl('');
+        }
     }
   }, [userProfile, user]);
 
-  const handleInputChange = async (e) => {
+  const handleInputChange = useCallback(async (e) => {
     const { name, value } = e.target;
         
     setFormData(prev => ({
@@ -46,30 +62,53 @@ const ProfileEditor = () => {
         setSlugAvailable(false);
       }
     }
-  };
+  }, []);
 
-  const handlePhotoChange = (e) => {
+  const handlePhotoChange = useCallback((e) => {
     const file = e.target.files[0];
-    if (file) {
-      // Validate file type and size
-      const validTypes = ['image/jpeg', 'image/png'];
-      if (!validTypes.includes(file.type)) {
-        setSubmitError('Please upload a JPEG or PNG file');
-        return;
-      }
-      
-      // 5MB limit
-      if (file.size > 5 * 1024 * 1024) {
-        setSubmitError('File size must be less than 5MB');
-        return;
-      }
+    if (!file) return;
 
-      const localPreviewUrl = URL.createObjectURL(file);
-      setPreviewFile(file);
-      setPreviewUrl(localPreviewUrl);
-      setSubmitError(null);
+    if (!VALID_TYPES.includes(file.type)) {
+      setSubmitError('Please upload a JPEG or PNG file');
+      return;
     }
-  };
+    
+    if (file.size > MAX_FILE_SIZE) {
+      setSubmitError('File size must be less than 5MB');
+      return;
+    }
+
+    const localPreviewUrl = URL.createObjectURL(file);
+    setPreviewFile(file);
+    setPreviewUrl(localPreviewUrl);
+    setSubmitError(null);
+  }, []);
+
+  const getDisplayImageUrl = useCallback(() => {
+    if (previewUrl) {
+        return previewUrl;
+    }
+    
+    if (formData.photo_url) {
+        try {
+            const url = new URL(formData.photo_url);
+            const params = new URLSearchParams(url.search);
+            
+            // Preserve all existing query parameters
+            let finalUrl = `${url.origin}${url.pathname}`;
+            if (params.toString()) {
+                finalUrl += `?${params.toString()}`;
+            }
+            
+            return finalUrl;
+        } catch (e) {
+            console.error('Error parsing photo URL:', e);
+            return DEFAULT_AVATAR;
+        }
+    }
+    
+    return DEFAULT_AVATAR;
+  }, [previewUrl, formData.photo_url]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -84,7 +123,6 @@ const ProfileEditor = () => {
 
     try {
         const updateFormData = new FormData();
-        // Ensure we're using the current form values
         updateFormData.append('display_name', formData.display_name.trim());
         updateFormData.append('slug', formData.slug.trim());
         
@@ -92,15 +130,9 @@ const ProfileEditor = () => {
             updateFormData.append('photo', previewFile);
         }
 
-        // Log exact values being sent
-        for (let [key, value] of updateFormData.entries()) {
-            console.log(`Submitting ${key}:`, value);
-        }
-
         const updatedProfile = await ProfileService.updateProfile(user.id, updateFormData);
         
         if (updatedProfile) {
-            // Update local state with the new values
             setFormData(prev => ({
                 ...prev,
                 display_name: updatedProfile.display_name,
@@ -108,9 +140,7 @@ const ProfileEditor = () => {
                 photo_url: updatedProfile.photo_url
             }));
             
-            // Update auth context
             await updateUserProfile(updatedProfile);
-            
             alert('Profile updated successfully!');
         }
     } catch (error) {
@@ -121,16 +151,6 @@ const ProfileEditor = () => {
     }
   };
 
-  const getDisplayImageUrl = () => {
-    if (previewUrl) {
-      return previewUrl;
-    }
-    if (formData.photo_url) {
-      return `${formData.photo_url}?t=${Date.now()}`;
-    }
-    return 'https://api.dicebear.com/6.x/personas/svg?seed=dude';
-  };
-
   if (!user) {
     return <div>Please log in to view your profile.</div>;
   }
@@ -138,6 +158,30 @@ const ProfileEditor = () => {
   if (isLoading) {
     return <div>Loading profile...</div>;
   }
+
+  const ImageComponent = ({ className = '' }) => (
+    <img 
+      src={getDisplayImageUrl()} 
+      alt="Profile"
+      className={className}
+      onLoad={() => {
+        setIsImageLoading(false);
+        console.log('Image loaded successfully');
+      }}
+      onError={(e) => {
+        console.error('Image failed to load:', e.target.src);
+        setIsImageLoading(false);
+        if (!e.target.src.includes('dicebear')) {
+          e.target.src = DEFAULT_AVATAR;
+        }
+      }}
+      style={{ 
+        opacity: isImageLoading ? 0.5 : 1,
+        maxWidth: '100%',
+        height: 'auto'
+      }}
+    />
+  );
 
   return (
     <StyledProfileEditor>
@@ -152,21 +196,11 @@ const ProfileEditor = () => {
           <div className="photo-upload">
             <div className="image-container">
               {isImageLoading && <div className="loading-spinner">Loading...</div>}
-              <img 
-                src={getDisplayImageUrl()} 
-                alt="Profile"
-                onLoad={() => setIsImageLoading(false)}
-                onError={(e) => {
-                  console.error('Image failed to load:', e.target.src);
-                  setIsImageLoading(false);
-                  e.target.src = 'https://api.dicebear.com/6.x/personas/svg?seed=dude';
-                }}
-                style={{ opacity: isImageLoading ? 0.5 : 1 }}
-              />
+              <ImageComponent />
             </div>
             <input 
               type="file" 
-              accept="image/jpeg,image/png" 
+              accept={VALID_TYPES.join(',')}
               onChange={handlePhotoChange}
               aria-label="Upload profile photo" 
             />
@@ -215,16 +249,7 @@ const ProfileEditor = () => {
 
       <PreviewContainer>
         <div className="preview-card">
-          <img 
-            src={getDisplayImageUrl()} 
-            alt="Profile Preview"
-            onLoad={() => setIsImageLoading(false)}
-            onError={(e) => {
-              setIsImageLoading(false);
-              e.target.src = 'https://api.dicebear.com/6.x/personas/svg?seed=dude';
-            }}
-            style={{ opacity: isImageLoading ? 0.5 : 1 }}
-          />
+          <ImageComponent />
           <h3>{formData.display_name || 'Display Name'}</h3>
           <p>{formData.slug || 'Profile Slug'}</p>
         </div>
