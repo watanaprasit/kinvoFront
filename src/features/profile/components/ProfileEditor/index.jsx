@@ -24,7 +24,7 @@ const ProfileEditor = () => {
 
   useEffect(() => {
     if (userProfile) {
-        console.log('UserProfile data:', userProfile);
+        console.log('Complete UserProfile data:', JSON.stringify(userProfile, null, 2));
         
         setFormData({
             display_name: userProfile.display_name || user?.name || '',
@@ -35,6 +35,7 @@ const ProfileEditor = () => {
         if (userProfile.photo_url) {
             try {
                 const url = new URL(userProfile.photo_url);
+                console.log('Parsed photo URL:', JSON.stringify(url.toString()));
                 setPreviewUrl(url.toString());
             } catch (e) {
                 console.error('Error setting preview URL:', e);
@@ -44,7 +45,7 @@ const ProfileEditor = () => {
             setPreviewUrl('');
         }
     }
-  }, [userProfile, user]);
+  }, [userProfile, user]);  
 
   const handleInputChange = useCallback(async (e) => {
     const { name, value } = e.target;
@@ -91,18 +92,10 @@ const ProfileEditor = () => {
     
     if (formData.photo_url) {
         try {
-            const url = new URL(formData.photo_url);
-            const params = new URLSearchParams(url.search);
-            
-            // Preserve all existing query parameters
-            let finalUrl = `${url.origin}${url.pathname}`;
-            if (params.toString()) {
-                finalUrl += `?${params.toString()}`;
-            }
-            
-            return finalUrl;
+            // Keep the original URL without manipulation
+            return formData.photo_url;
         } catch (e) {
-            console.error('Error parsing photo URL:', e);
+            console.error('Error with photo URL:', e);
             return DEFAULT_AVATAR;
         }
     }
@@ -161,25 +154,30 @@ const ProfileEditor = () => {
 
   const ImageComponent = ({ className = '' }) => (
     <img 
-      src={getDisplayImageUrl()} 
-      alt="Profile"
-      className={className}
-      onLoad={() => {
-        setIsImageLoading(false);
-        console.log('Image loaded successfully');
-      }}
-      onError={(e) => {
-        console.error('Image failed to load:', e.target.src);
-        setIsImageLoading(false);
-        if (!e.target.src.includes('dicebear')) {
-          e.target.src = DEFAULT_AVATAR;
-        }
-      }}
-      style={{ 
-        opacity: isImageLoading ? 0.5 : 1,
-        maxWidth: '100%',
-        height: 'auto'
-      }}
+        src={getDisplayImageUrl()} 
+        alt="Profile"
+        className={className}
+        onLoad={() => {
+            setIsImageLoading(false);
+            // Use JSON.stringify to ensure we see the full URL
+            console.log('Image loaded successfully. Full URL:', JSON.stringify(getDisplayImageUrl()));
+        }}
+        onError={(e) => {
+            console.error('Image failed to load. Details:', JSON.stringify({
+                attemptedUrl: e.target.src,
+                originalUrl: formData.photo_url,
+                previewUrl: previewUrl
+            }, null, 2));
+            setIsImageLoading(false);
+            if (!e.target.src.includes('dicebear')) {
+                e.target.src = DEFAULT_AVATAR;
+            }
+        }}
+        style={{ 
+            opacity: isImageLoading ? 0.5 : 1,
+            maxWidth: '100%',
+            height: 'auto'
+        }}
     />
   );
 

@@ -81,23 +81,24 @@ export const ProfileService = {
       const formData = new FormData();
       
       if (data instanceof FormData) {
-        const photo = data.get('photo');
-        if (photo instanceof File) {
-            const fileExt = photo.name.split('.').pop();
-            const uniqueId = crypto.randomUUID().replace(/-/g, '');
-            const fileName = `${uniqueId}.${fileExt}`;  // Remove userId from filename since it's in the folder path
-            
-            const renamedFile = new File([photo], fileName, {
-                type: photo.type
-            });
-            
-            data.delete('photo');
-            data.append('photo', renamedFile);
-            data.append('file_path', fileName);  // Just the filename, backend will handle the folder structure
-            
-            console.log('Uploading photo:', fileName);
-        }
-  
+          const photo = data.get('photo');
+          if (photo instanceof File) {
+              const fileExt = photo.name.split('.').pop();
+              const uniqueId = crypto.randomUUID().replace(/-/g, '');
+              // Remove the user ID from the path since it might not be configured in storage
+              const fileName = `${uniqueId}.${fileExt}`;
+              
+              const renamedFile = new File([photo], fileName, {
+                  type: photo.type
+              });
+              
+              data.delete('photo');
+              data.append('photo', renamedFile);
+              data.append('file_path', fileName);
+              
+              console.log('Uploading photo:', fileName);
+          }
+          
           return fetch(
               API_ROUTES.USERS.PROFILE_UPDATE,
               {
@@ -113,7 +114,7 @@ export const ProfileService = {
               if (!response.ok) {
                   throw new Error(`Failed to update profile (${response.status}): ${responseText}`);
               }
-  
+
               try {
                   return JSON.parse(responseText);
               } catch (e) {
@@ -127,7 +128,7 @@ export const ProfileService = {
           if (data.photo) {
               const fileExt = data.photo.name.split('.').pop();
               const uniqueId = crypto.randomUUID().replace(/-/g, '');
-              const fileName = `${uniqueId}.${fileExt}`;  // Remove userId from filename
+              const fileName = `${uniqueId}.${fileExt}`;
               
               const renamedFile = new File([data.photo], fileName, {
                   type: data.photo.type
@@ -154,9 +155,16 @@ export const ProfileService = {
               if (!response.ok) {
                   throw new Error(`Failed to update profile (${response.status}): ${responseText}`);
               }
-  
+
               try {
-                  return JSON.parse(responseText);
+                  const data = JSON.parse(responseText);
+                  
+                  // Clean up the photo_url if it exists
+                  if (data.photo_url) {
+                      data.photo_url = data.photo_url.replace(/\?$/, ''); // Remove trailing question mark
+                  }
+                  
+                  return data;
               } catch (e) {
                   throw new Error(`Invalid JSON response: ${responseText}`);
               }
