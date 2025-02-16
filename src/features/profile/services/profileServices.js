@@ -74,7 +74,10 @@ export const ProfileService = {
           throw new Error(`Failed to fetch profile (${response.status}): ${errorData}`);
       }
   
-      return await response.json();
+      const data = await response.json();
+      console.log('ProfileService - Raw profile data:', data); // Debug log
+      return data; // Return the raw data without modification
+  
     },
 
     async updateProfile(userId, data) {

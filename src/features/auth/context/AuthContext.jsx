@@ -25,6 +25,8 @@ export const AuthProvider = ({ children }) => {
       try {
         // Get user data from auth.users table
         const userData = await ProfileService.getUserByEmail(user.email);
+        console.log('AuthContext - User data:', userData);
+
         
         if (!userData?.id) {
           throw new Error('User ID not found');
@@ -32,6 +34,8 @@ export const AuthProvider = ({ children }) => {
 
         // Get user profile from user_profiles table
         const profileData = await ProfileService.getProfileByUserId(userData.id);
+        console.log('AuthContext - Profile data:', profileData);
+
 
         // Create default profile if none exists
         const profile = profileData || {
@@ -40,17 +44,24 @@ export const AuthProvider = ({ children }) => {
           photo_url: null
         };
 
+        console.log('AuthContext - Final profile:', profile);
+
+
         // Combine user and profile data
         const updatedUser = {
           ...userData,
           profile
         };
 
+        console.log('AuthContext - Updated user:', updatedUser);
+
+
         setUser(updatedUser);
         setUserProfile(profile);
         localStorage.setItem('user', JSON.stringify(updatedUser));
         setError(null);
       } catch (error) {
+        console.error('AuthContext - Error:', error);
         setError(error.message);
       } finally {
         setIsLoading(false);
@@ -88,18 +99,29 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-        setUserProfile(updatedProfile);
+        // Make the API call to update the profile
+        const response = await ProfileService.updateProfile(user.id, updatedProfile);
+        
+        // Ensure photo_url is properly handled
+        const newProfile = {
+            ...response,
+            photo_url: response.photo_url || updatedProfile.photo_url
+        };
+
+        setUserProfile(newProfile);
         setUser(prevUser => ({
             ...prevUser,
-            profile: updatedProfile
+            profile: newProfile
         }));
 
-        localStorage.setItem('user', JSON.stringify({
+        // Update localStorage
+        const updatedUser = {
             ...user,
-            profile: updatedProfile
-        }));
+            profile: newProfile
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
 
-        return updatedProfile;
+        return newProfile;
     } catch (error) {
         console.error('Error updating profile:', error);
         throw error;

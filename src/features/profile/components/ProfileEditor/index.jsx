@@ -24,28 +24,26 @@ const ProfileEditor = () => {
 
   useEffect(() => {
     if (userProfile) {
-        console.log('Complete UserProfile data:', JSON.stringify(userProfile, null, 2));
+        console.log('ProfileEditor - Complete UserProfile:', userProfile);
         
-        setFormData({
-            display_name: userProfile.display_name || user?.name || '',
+        const newFormData = {
+            display_name: userProfile.display_name || user?.full_name || '',
             slug: userProfile.slug || user?.slug || '',
             photo_url: userProfile.photo_url || ''
-        });
+        };
+        
+        console.log('ProfileEditor - Setting form data:', newFormData);
+        setFormData(newFormData);
         
         if (userProfile.photo_url) {
-            try {
-                const url = new URL(userProfile.photo_url);
-                console.log('Parsed photo URL:', JSON.stringify(url.toString()));
-                setPreviewUrl(url.toString());
-            } catch (e) {
-                console.error('Error setting preview URL:', e);
-                setPreviewUrl('');
-            }
+            console.log('ProfileEditor - Setting photo URL:', userProfile.photo_url);
+            setPreviewUrl(userProfile.photo_url);
         } else {
+            console.log('ProfileEditor - No photo URL found');
             setPreviewUrl('');
         }
     }
-  }, [userProfile, user]);  
+  }, [userProfile, user]);
 
   const handleInputChange = useCallback(async (e) => {
     const { name, value } = e.target;
@@ -86,20 +84,27 @@ const ProfileEditor = () => {
   }, []);
 
   const getDisplayImageUrl = useCallback(() => {
+    console.log('ProfileEditor - Getting display image URL');
+    console.log('- Preview URL:', previewUrl);
+    console.log('- Form Data photo_url:', formData.photo_url);
+    
     if (previewUrl) {
+        console.log('Returning preview URL:', previewUrl);
         return previewUrl;
     }
     
     if (formData.photo_url) {
         try {
-            // Keep the original URL without manipulation
+            console.log('Returning form data photo URL:', formData.photo_url);
             return formData.photo_url;
         } catch (e) {
             console.error('Error with photo URL:', e);
+            console.log('Falling back to default avatar');
             return DEFAULT_AVATAR;
         }
     }
     
+    console.log('Returning default avatar');
     return DEFAULT_AVATAR;
   }, [previewUrl, formData.photo_url]);
 
@@ -126,14 +131,19 @@ const ProfileEditor = () => {
         const updatedProfile = await ProfileService.updateProfile(user.id, updateFormData);
         
         if (updatedProfile) {
+            console.log('Updated profile response:', updatedProfile);
+            
+            const newProfile = {
+                ...updatedProfile,
+                photo_url: updatedProfile.photo_url || formData.photo_url
+            };
+
             setFormData(prev => ({
                 ...prev,
-                display_name: updatedProfile.display_name,
-                slug: updatedProfile.slug,
-                photo_url: updatedProfile.photo_url
+                ...newProfile
             }));
             
-            await updateUserProfile(updatedProfile);
+            await updateUserProfile(newProfile);
             alert('Profile updated successfully!');
         }
     } catch (error) {
@@ -159,15 +169,15 @@ const ProfileEditor = () => {
         className={className}
         onLoad={() => {
             setIsImageLoading(false);
-            // Use JSON.stringify to ensure we see the full URL
-            console.log('Image loaded successfully. Full URL:', JSON.stringify(getDisplayImageUrl()));
+            console.log('ProfileEditor - Image loaded successfully. URL:', getDisplayImageUrl());
         }}
         onError={(e) => {
-            console.error('Image failed to load. Details:', JSON.stringify({
+            console.error('ProfileEditor - Image failed to load:', {
                 attemptedUrl: e.target.src,
-                originalUrl: formData.photo_url,
-                previewUrl: previewUrl
-            }, null, 2));
+                formDataUrl: formData.photo_url,
+                previewUrl: previewUrl,
+                userProfileUrl: userProfile?.photo_url
+            });
             setIsImageLoading(false);
             if (!e.target.src.includes('dicebear')) {
                 e.target.src = DEFAULT_AVATAR;
