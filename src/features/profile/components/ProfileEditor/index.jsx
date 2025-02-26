@@ -4,7 +4,7 @@ import { ProfileService } from '../../services/profileServices';
 import { StyledProfileEditor, PreviewContainer, EditorContainer } from './styles';
 
 const DEFAULT_AVATAR = 'https://api.dicebear.com/6.x/personas/svg?seed=dude';
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; 
 const VALID_TYPES = ['image/jpeg', 'image/png'];
 
 const ProfileEditor = () => {

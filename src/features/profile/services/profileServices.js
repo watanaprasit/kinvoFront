@@ -75,8 +75,8 @@ export const ProfileService = {
       }
   
       const data = await response.json();
-      console.log('ProfileService - Raw profile data:', data); // Debug log
-      return data; // Return the raw data without modification
+      console.log('ProfileService - Raw profile data:', data); 
+      return data; 
   
     },
 
@@ -88,7 +88,6 @@ export const ProfileService = {
           if (photo instanceof File) {
               const fileExt = photo.name.split('.').pop();
               const uniqueId = crypto.randomUUID().replace(/-/g, '');
-              // Remove the user ID from the path since it might not be configured in storage
               const fileName = `${uniqueId}.${fileExt}`;
               
               const renamedFile = new File([photo], fileName, {
