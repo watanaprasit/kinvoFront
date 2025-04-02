@@ -8,7 +8,7 @@ const Button = ({ onClick, type = 'button', isLoading, children, className }) =>
       onClick={onClick}
       disabled={isLoading}
       className={className}
-      $isLoading={isLoading} // Use `$isLoading` for styled-components to differentiate
+      $isLoading={isLoading} 
     >
       {isLoading ? 'Loading...' : children}
     </StyledButton>
