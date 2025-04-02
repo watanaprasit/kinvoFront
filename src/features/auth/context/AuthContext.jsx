@@ -32,12 +32,9 @@ export const AuthProvider = ({ children }) => {
           throw new Error('User ID not found');
         }
 
-        // Get user profile from user_profiles table
         const profileData = await ProfileService.getProfileByUserId(userData.id);
         console.log('AuthContext - Profile data:', profileData);
 
-
-        // Create default profile if none exists
         const profile = profileData || {
           display_name: userData.full_name,
           slug: userData.slug,
@@ -46,8 +43,6 @@ export const AuthProvider = ({ children }) => {
 
         console.log('AuthContext - Final profile:', profile);
 
-
-        // Combine user and profile data
         const updatedUser = {
           ...userData,
           profile
@@ -99,10 +94,8 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-        // Make the API call to update the profile
         const response = await ProfileService.updateProfile(user.id, updatedProfile);
         
-        // Ensure photo_url is properly handled
         const newProfile = {
             ...response,
             photo_url: response.photo_url || updatedProfile.photo_url
@@ -114,7 +107,6 @@ export const AuthProvider = ({ children }) => {
             profile: newProfile
         }));
 
-        // Update localStorage
         const updatedUser = {
             ...user,
             profile: newProfile
