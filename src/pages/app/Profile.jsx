@@ -1,6 +1,6 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
-import { useAuth } from '../../features/auth/context/AuthContext'; // Adjust import path as needed
+import { useAuth } from '../../features/auth/context/AuthContext'; 
 import { ProfileService } from '../../features/profile/services/profileServices';
 import ProfileEditor from '../../features/profile/components/ProfileEditor';
 
@@ -11,13 +11,11 @@ const UserProfile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-// Add some console logs to debug
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
         const profileUserId = userId || user?.id;
-        
-        console.log('Attempting to fetch profile for userId:', profileUserId);
+
         
         if (!profileUserId) {
           throw new Error('No user ID available');
@@ -25,11 +23,8 @@ const UserProfile = () => {
 
         const profileData = await ProfileService.getProfileByUserId(profileUserId);
         
-        console.log('Fetched profile data:', profileData);
-        
         setUserData(profileData);
       } catch (error) {
-        console.error('Error fetching user profile:', error);
         setError(error);
       } finally {
         setIsLoading(false);

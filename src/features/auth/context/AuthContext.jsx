@@ -2,7 +2,6 @@ import { createContext, useState, useContext, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { ProfileService } from '../../profile/services/profileServices';
 
-
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -14,6 +13,7 @@ export const AuthProvider = ({ children }) => {
   const [isRegistrationComplete, setIsRegistrationComplete] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [avatarKey, setAvatarKey] = useState(Date.now()); 
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -27,7 +27,6 @@ export const AuthProvider = ({ children }) => {
         const userData = await ProfileService.getUserByEmail(user.email);
         console.log('AuthContext - User data:', userData);
 
-        
         if (!userData?.id) {
           throw new Error('User ID not found');
         }
@@ -50,10 +49,10 @@ export const AuthProvider = ({ children }) => {
 
         console.log('AuthContext - Updated user:', updatedUser);
 
-
         setUser(updatedUser);
         setUserProfile(profile);
         localStorage.setItem('user', JSON.stringify(updatedUser));
+        setAvatarKey(Date.now()); // Update avatar key to force re-render
         setError(null);
       } catch (error) {
         console.error('AuthContext - Error:', error);
@@ -88,37 +87,68 @@ export const AuthProvider = ({ children }) => {
     setError(null);
   };
 
-  const updateUserProfile = async (updatedProfile) => {
-    if (!user?.id) {
-        throw new Error('User ID is required to update profile');
+// Enhance the updateUserProfile method in AuthContext.jsx
+
+const updateUserProfile = async (updatedProfile) => {
+  if (!user?.id) {
+    throw new Error('User ID is required to update profile');
+  }
+
+  try {
+    console.log('Updating profile with:', updatedProfile);
+    
+    let finalUpdatedProfile;
+    
+    if (updatedProfile instanceof FormData) {
+      const response = await ProfileService.updateProfile(user.id, updatedProfile);
+      finalUpdatedProfile = response;
+    } else {
+      finalUpdatedProfile = await ProfileService.updateProfile(user.id, updatedProfile);
     }
-
-    try {
-        const response = await ProfileService.updateProfile(user.id, updatedProfile);
-        
-        const newProfile = {
-            ...response,
-            photo_url: response.photo_url || updatedProfile.photo_url
-        };
-
-        setUserProfile(newProfile);
-        setUser(prevUser => ({
-            ...prevUser,
-            profile: newProfile
-        }));
-
-        const updatedUser = {
-            ...user,
-            profile: newProfile
-        };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-
-        return newProfile;
-    } catch (error) {
-        console.error('Error updating profile:', error);
-        throw error;
+    
+    console.log('Profile update response:', finalUpdatedProfile);
+    
+    // Ensure photo_url is properly formatted
+    if (finalUpdatedProfile.photo_url) {
+      console.log('Original photo_url:', finalUpdatedProfile.photo_url);
+      finalUpdatedProfile.photo_url = ProfileService.formatPhotoUrl(finalUpdatedProfile.photo_url);
+      console.log('Formatted photo_url:', finalUpdatedProfile.photo_url);
     }
-  };
+    
+    // Create new profile object with the response data
+    const newProfile = {
+      ...finalUpdatedProfile
+    };
+    
+    console.log('Final profile being set:', newProfile);
+    
+    // Update state
+    setUserProfile(newProfile);
+    setUser(prevUser => {
+      const updatedUser = {
+        ...prevUser,
+        profile: newProfile
+      };
+      console.log('Updating user state with new profile:', updatedUser);
+      return updatedUser;
+    });
+    
+    // Update local storage
+    const updatedUser = {
+      ...user,
+      profile: newProfile
+    };
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    
+    // Force avatar to re-render by updating the key
+    setAvatarKey(Date.now());
+    
+    return newProfile;
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    throw error;
+  }
+};
 
   const isAuthenticated = Boolean(user && localStorage.getItem('access_token'));
 
@@ -132,7 +162,8 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     updateUserProfile,
-    setIsRegistrationComplete
+    setIsRegistrationComplete,
+    avatarKey // Expose avatar key to components
   };
 
   return (
@@ -155,5 +186,3 @@ export const useAuth = () => {
 };
 
 export default AuthContext;
-
-

@@ -82,7 +82,7 @@ export const loginWithGoogle = async (idToken) => {
       body: JSON.stringify({
         id_token: idToken,
         auth_type: 'google',
-        is_login: true  // New flag to indicate this is a login attempt
+        is_login: true  
       })
     });
 

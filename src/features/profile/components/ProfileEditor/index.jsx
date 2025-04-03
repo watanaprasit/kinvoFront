@@ -22,28 +22,39 @@ const ProfileEditor = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(false);
 
+  // Helper function to clean URLs by removing trailing question marks
+  const cleanImageUrl = useCallback((url) => {
+    if (!url) return null;
+    
+    // First, remove any trailing question mark
+    let cleaned = url.endsWith('?') ? url.slice(0, -1) : url;
+    
+    // Then, remove any existing cache-busting parameters
+    if (cleaned.includes('?t=')) {
+      cleaned = cleaned.split('?t=')[0];
+    }
+    
+    return cleaned;
+  }, []);
+
   useEffect(() => {
     if (userProfile) {
-        console.log('ProfileEditor - Complete UserProfile:', userProfile);
-        
-        const newFormData = {
-            display_name: userProfile.display_name || user?.full_name || '',
-            slug: userProfile.slug || user?.slug || '',
-            photo_url: userProfile.photo_url || ''
-        };
-        
-        console.log('ProfileEditor - Setting form data:', newFormData);
-        setFormData(newFormData);
-        
-        if (userProfile.photo_url) {
-            console.log('ProfileEditor - Setting photo URL:', userProfile.photo_url);
-            setPreviewUrl(userProfile.photo_url);
-        } else {
-            console.log('ProfileEditor - No photo URL found');
-            setPreviewUrl('');
-        }
+      const newFormData = {
+        display_name: userProfile.display_name || user?.full_name || '',
+        slug: userProfile.slug || user?.slug || '',
+        photo_url: cleanImageUrl(userProfile.photo_url) || ''
+      };
+      
+      setFormData(newFormData);
+      
+      if (userProfile.photo_url) {
+        const cleanUrl = cleanImageUrl(userProfile.photo_url);
+        setPreviewUrl(cleanUrl);
+      } else {
+        setPreviewUrl('');
+      }
     }
-  }, [userProfile, user]);
+  }, [userProfile, user, cleanImageUrl]);
 
   const handleInputChange = useCallback(async (e) => {
     const { name, value } = e.target;
@@ -84,73 +95,62 @@ const ProfileEditor = () => {
   }, []);
 
   const getDisplayImageUrl = useCallback(() => {
-    console.log('ProfileEditor - Getting display image URL');
-    console.log('- Preview URL:', previewUrl);
-    console.log('- Form Data photo_url:', formData.photo_url);
-    
     if (previewUrl) {
-        console.log('Returning preview URL:', previewUrl);
-        return previewUrl;
+      return previewUrl;
+    }
+    
+    if (userProfile?.photo_url) {
+      // Use the URL directly from the profile context
+      return cleanImageUrl(userProfile.photo_url);
     }
     
     if (formData.photo_url) {
-        try {
-            console.log('Returning form data photo URL:', formData.photo_url);
-            return formData.photo_url;
-        } catch (e) {
-            console.error('Error with photo URL:', e);
-            console.log('Falling back to default avatar');
-            return DEFAULT_AVATAR;
-        }
+      return cleanImageUrl(formData.photo_url);
     }
     
-    console.log('Returning default avatar');
     return DEFAULT_AVATAR;
-  }, [previewUrl, formData.photo_url]);
+  }, [previewUrl, formData.photo_url, userProfile, cleanImageUrl]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!slugAvailable) {
-        setSubmitError('Please choose an available slug');
-        return;
+      setSubmitError('Please choose an available slug');
+      return;
     }
 
     setIsSubmitting(true);
     setSubmitError(null);
 
     try {
-        const updateFormData = new FormData();
-        updateFormData.append('display_name', formData.display_name.trim());
-        updateFormData.append('slug', formData.slug.trim());
-        
-        if (previewFile) {
-            updateFormData.append('photo', previewFile);
-        }
+      const updateFormData = new FormData();
+      updateFormData.append('display_name', formData.display_name.trim());
+      updateFormData.append('slug', formData.slug.trim());
+      
+      if (previewFile) {
+        updateFormData.append('photo', previewFile);
+      }
 
-        const updatedProfile = await ProfileService.updateProfile(user.id, updateFormData);
-        
-        if (updatedProfile) {
-            console.log('Updated profile response:', updatedProfile);
-            
-            const newProfile = {
-                ...updatedProfile,
-                photo_url: updatedProfile.photo_url || formData.photo_url
-            };
+      const updatedProfile = await ProfileService.updateProfile(user.id, updateFormData);
+      
+      if (updatedProfile) {
+        const newProfile = {
+          ...updatedProfile,
+          photo_url: cleanImageUrl(updatedProfile.photo_url) || formData.photo_url
+        };
 
-            setFormData(prev => ({
-                ...prev,
-                ...newProfile
-            }));
-            
-            await updateUserProfile(newProfile);
-            alert('Profile updated successfully!');
-        }
+        setFormData(prev => ({
+          ...prev,
+          ...newProfile
+        }));
+        
+        await updateUserProfile(newProfile);
+        alert('Profile updated successfully!');
+      }
     } catch (error) {
-        console.error('Submit error:', error);
-        setSubmitError(error.message || 'Failed to update profile');
+      setSubmitError(error.message || 'Failed to update profile');
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -162,34 +162,83 @@ const ProfileEditor = () => {
     return <div>Loading profile...</div>;
   }
 
-  const ImageComponent = ({ className = '' }) => (
-    <img 
-        src={getDisplayImageUrl()} 
-        alt="Profile"
-        className={className}
-        onLoad={() => {
-            setIsImageLoading(false);
-            console.log('ProfileEditor - Image loaded successfully. URL:', getDisplayImageUrl());
-        }}
-        onError={(e) => {
-            console.error('ProfileEditor - Image failed to load:', {
-                attemptedUrl: e.target.src,
-                formDataUrl: formData.photo_url,
-                previewUrl: previewUrl,
-                userProfileUrl: userProfile?.photo_url
-            });
-            setIsImageLoading(false);
-            if (!e.target.src.includes('dicebear')) {
-                e.target.src = DEFAULT_AVATAR;
-            }
-        }}
-        style={{ 
-            opacity: isImageLoading ? 0.5 : 1,
+  const ImageComponent = ({ className = '' }) => {
+    const [imgSrc, setImgSrc] = useState('');
+    const [localLoading, setLocalLoading] = useState(true);
+    const [retryCount, setRetryCount] = useState(0);
+    const maxRetries = 2;
+    
+    useEffect(() => {
+      // Reset states when the image source changes
+      setLocalLoading(true);
+      setRetryCount(0);
+      
+      const displayUrl = getDisplayImageUrl();
+      console.log('Setting image src to:', displayUrl);
+      
+      // Add a timestamp to prevent caching
+      const urlWithTimestamp = displayUrl.includes('?') 
+        ? `${displayUrl}&_=${Date.now()}` 
+        : `${displayUrl}?_=${Date.now()}`;
+        
+      setImgSrc(urlWithTimestamp);
+    }, [getDisplayImageUrl]); 
+
+    useEffect(() => {
+      if (userProfile?.photo_url) {
+        const url = cleanImageUrl(userProfile.photo_url);
+        console.log('Validating image URL:', url);
+        
+        // Create a test image to check if the URL is valid
+        const testImg = new Image();
+        testImg.onload = () => console.log('TEST IMAGE LOADED SUCCESSFULLY:', url);
+        testImg.onerror = () => console.log('TEST IMAGE FAILED TO LOAD:', url);
+        testImg.src = url;
+      }
+    }, [userProfile, cleanImageUrl]);
+
+    const handleImageError = (e) => {
+      console.log(`Image failed to load (attempt ${retryCount + 1}):`, imgSrc);
+      
+      if (retryCount < maxRetries) {
+        // Try again with a delay (in case it's a timing issue)
+        setTimeout(() => {
+          console.log(`Retrying image load (attempt ${retryCount + 1})...`);
+          const newUrl = `${cleanImageUrl(imgSrc)}?_=${Date.now()}`;
+          setImgSrc(newUrl);
+          setRetryCount(prevCount => prevCount + 1);
+        }, 500);
+      } else {
+        setLocalLoading(false);
+        // Only change to default if not already using default
+        if (!e.target.src.includes('dicebear')) {
+          console.log('Falling back to default avatar');
+          e.target.src = DEFAULT_AVATAR;
+        }
+      }
+    };
+  
+    return (
+      <div className="image-wrapper">
+        {localLoading && <div className="loading-spinner">Loading...</div>}
+        <img 
+          src={imgSrc} 
+          alt="Profile"
+          className={className}
+          onLoad={() => {
+            console.log('Image loaded successfully:', imgSrc);
+            setLocalLoading(false);
+          }}
+          onError={handleImageError}
+          style={{ 
+            opacity: localLoading ? 0.5 : 1,
             maxWidth: '100%',
             height: 'auto'
-        }}
-    />
-  );
+          }}
+        />
+      </div>
+    );
+  };
 
   return (
     <StyledProfileEditor>
