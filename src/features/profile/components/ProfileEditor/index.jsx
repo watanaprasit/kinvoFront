@@ -131,28 +131,26 @@ const ProfileEditor = () => {
         updateFormData.append('photo', previewFile);
       }
 
-      const updatedProfile = await ProfileService.updateProfile(user.id, updateFormData);
+      const updatedProfile = await updateUserProfile(updateFormData);
       
       if (updatedProfile) {
-        const newProfile = {
-          ...updatedProfile,
-          photo_url: cleanImageUrl(updatedProfile.photo_url) || formData.photo_url
-        };
-
+        // Set form data based on the result
         setFormData(prev => ({
           ...prev,
-          ...newProfile
+          display_name: updatedProfile.display_name || prev.display_name,
+          slug: updatedProfile.slug || prev.slug,
+          photo_url: cleanImageUrl(updatedProfile.photo_url) || prev.photo_url
         }));
         
-        await updateUserProfile(newProfile);
         alert('Profile updated successfully!');
       }
+
     } catch (error) {
       setSubmitError(error.message || 'Failed to update profile');
     } finally {
       setIsSubmitting(false);
     }
-  };
+};
 
   if (!user) {
     return <div>Please log in to view your profile.</div>;

@@ -158,7 +158,7 @@ export const ProfileService = {
                         if (currentProfile && currentSlug !== currentProfile.slug) {
                             const slugCheck = await this.checkSlugAvailability(currentSlug);
                             if (!slugCheck.available) {
-                                return Promise.reject(new Error('Slug is already taken'));
+                                return Promise.reject(new Error('Slug is already in use'));
                             }
                         }
                     } catch (error) {
