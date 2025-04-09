@@ -21,6 +21,11 @@ const ProfileEditor = () => {
   const [submitError, setSubmitError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(false);
+  const [originalFormData, setOriginalFormData] = useState({
+    display_name: '',
+    slug: '',
+    photo_url: ''
+  });
 
   // Helper function to clean URLs by removing trailing question marks
   const cleanImageUrl = useCallback((url) => {
@@ -36,6 +41,7 @@ const ProfileEditor = () => {
     
     return cleaned;
   }, []);
+  
 
   useEffect(() => {
     if (userProfile) {
@@ -46,6 +52,7 @@ const ProfileEditor = () => {
       };
       
       setFormData(newFormData);
+      setSlugAvailable(true); // Add this line to ensure it's true for the user's own slug
       
       if (userProfile.photo_url) {
         const cleanUrl = cleanImageUrl(userProfile.photo_url);
@@ -63,8 +70,15 @@ const ProfileEditor = () => {
       ...prev,
       [name]: value
     }));
-
+  
+    // Only check slug availability if it's different from current slug
     if (name === 'slug' && value.trim()) {
+      // Skip validation if the slug is unchanged from user's current slug
+      if (userProfile && value === userProfile.slug) {
+        setSlugAvailable(true); // User's own slug is always "available" to them
+        return;
+      }
+      
       try {
         const result = await ProfileService.checkSlugAvailability(value);
         setSlugAvailable(result.available);
@@ -72,7 +86,7 @@ const ProfileEditor = () => {
         setSlugAvailable(false);
       }
     }
-  }, []);
+  }, [userProfile]);
 
   const handlePhotoChange = useCallback((e) => {
     const file = e.target.files[0];
@@ -113,28 +127,39 @@ const ProfileEditor = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!slugAvailable) {
-      setSubmitError('Please choose an available slug');
-      return;
-    }
-
+  
     setIsSubmitting(true);
     setSubmitError(null);
-
+  
     try {
       const updateFormData = new FormData();
-      updateFormData.append('display_name', formData.display_name.trim());
-      updateFormData.append('slug', formData.slug.trim());
       
-      if (previewFile) {
-        updateFormData.append('photo', previewFile);
+        // Only include fields that have changed
+      if (formData.display_name.trim() !== originalFormData.display_name) {
+          updateFormData.append('display_name', formData.display_name.trim());
       }
-
+      
+      // Include slug if it has changed - backend will validate
+      if (formData.slug.trim() !== originalFormData.slug) {
+          updateFormData.append('slug', formData.slug.trim());
+      }
+      
+      // Only include photo if there's a new one
+      if (previewFile) {
+          updateFormData.append('photo', previewFile);
+      }
+  
       const updatedProfile = await updateUserProfile(updateFormData);
       
       if (updatedProfile) {
-        // Set form data based on the result
+        // Update original form data with the new values
+        setOriginalFormData({
+          display_name: updatedProfile.display_name || originalFormData.display_name,
+          slug: updatedProfile.slug || originalFormData.slug,
+          photo_url: cleanImageUrl(updatedProfile.photo_url) || originalFormData.photo_url
+        });
+        
+        // Also update current form data
         setFormData(prev => ({
           ...prev,
           display_name: updatedProfile.display_name || prev.display_name,
@@ -144,12 +169,17 @@ const ProfileEditor = () => {
         
         alert('Profile updated successfully!');
       }
-
+  
     } catch (error) {
-      setSubmitError(error.message || 'Failed to update profile');
-    } finally {
+      // Extract and display the error message
+      if (error.message.includes('Slug is already taken')) {
+          setSubmitError('This slug is already taken. Please choose another.');
+      } else {
+          setSubmitError(error.message || 'Failed to update profile');
+      }
+  } finally {
       setIsSubmitting(false);
-    }
+  }
 };
 
   if (!user) {
