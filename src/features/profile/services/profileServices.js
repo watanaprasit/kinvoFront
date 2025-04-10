@@ -22,8 +22,18 @@ export const ProfileService = {
     formatPhotoUrl(url) {
         if (!url) return url;
         
+        // Skip cache busting for blob URLs
+        if (url.startsWith('blob:')) {
+            return url;
+        }
+        
         // Remove any trailing question mark
         let formattedUrl = url.replace(/\?$/, '');
+        
+        // Clean any existing cache busting parameters
+        if (formattedUrl.includes('?t=')) {
+            formattedUrl = formattedUrl.split('?t=')[0];
+        }
         
         // Add cache busting parameter
         const timestamp = new Date().getTime();
@@ -98,16 +108,12 @@ export const ProfileService = {
         try {
             data = JSON.parse(responseText);
         } catch (e) {
-            console.error("Failed to parse JSON:", responseText);
             throw new Error(`Invalid JSON response: ${responseText}`);
         }
-        
-        console.log('ProfileService - Raw profile data:', data);
         
         // Ensure photo_url is properly formatted using the formatPhotoUrl function
         if (data.photo_url) {
             data.photo_url = this.formatPhotoUrl(data.photo_url);
-            console.log('Formatted photo URL:', data.photo_url);
         }
         
         return data;
@@ -119,7 +125,57 @@ export const ProfileService = {
         
         // Check if there's an ongoing request and prevent duplicate submission
         if (this._updateInProgress) {
-            console.log('Update already in progress, skipping duplicate request');
+          return Promise.reject(new Error('Another update is in progress'));
+        }
+        
+        this._updateInProgress = requestId;
+        
+        try {
+          // Rest of your code...
+          
+          const response = await fetch(
+            API_ROUTES.USERS.PROFILE_UPDATE,
+            {
+              method: 'PUT',
+              headers: this.getAuthHeaders(null),
+              credentials: 'include',
+              body: data // Can be FormData or other
+            }
+          );
+          
+          const responseText = await response.text();
+          
+          if (!response.ok) {
+            console.error('Update profile failed:', response.status, responseText);
+            throw new Error(`Failed to update profile (${response.status}): ${responseText}`);
+          }
+      
+          try {
+            const jsonData = JSON.parse(responseText);
+            
+            // Format the photo_url if it exists
+            if (jsonData.photo_url) {
+              jsonData.photo_url = this.formatPhotoUrl(jsonData.photo_url);
+            }
+            
+            return jsonData;
+          } catch (e) {
+            throw new Error(`Invalid JSON response: ${responseText}`);
+          }
+        } finally {
+          // Only clear flag if this is the current request
+          if (this._updateInProgress === requestId) {
+            this._updateInProgress = null;
+          }
+        }
+      },
+
+    async updateDisplayName(userId, displayName) {
+        // Add debouncing mechanism with a unique request identifier
+        const requestId = `display_name_update_${Date.now()}`;
+        
+        // Check if there's an ongoing request and prevent duplicate submission
+        if (this._updateInProgress) {
             return Promise.reject(new Error('Another update is in progress'));
         }
         
@@ -127,147 +183,35 @@ export const ProfileService = {
         
         try {
             const formData = new FormData();
+            formData.append('display_name', displayName);
             
-            if (data instanceof FormData) {
-                // Handle photo upload if it exists
-                const photo = data.get('photo');
-                if (photo instanceof File && photo.size > 0) {
-                    const fileExt = photo.name.split('.').pop();
-                    const uniqueId = crypto.randomUUID().replace(/-/g, '');
-                    const fileName = `${uniqueId}.${fileExt}`;
-                    
-                    const renamedFile = new File([photo], fileName, {
-                        type: photo.type
-                    });
-                    
-                    data.delete('photo');
-                    data.append('photo', renamedFile);
-                    data.append('file_path', fileName);
-                    
-                    console.log('Uploading photo:', fileName);
+            const response = await fetch(
+                `${API_ROUTES.BASE_URL}/api/v1/users/me/display-name`,
+                {
+                    method: 'PUT',
+                    headers: this.getAuthHeaders(null),
+                    credentials: 'include',
+                    body: formData
+                }
+            );
+            
+            const responseText = await response.text();
+            
+            if (!response.ok) {
+                throw new Error(`Failed to update display name (${response.status}): ${responseText}`);
+            }
+
+            try {
+                const jsonData = JSON.parse(responseText);
+                
+                // Format the photo_url if it exists
+                if (jsonData.photo_url) {
+                    jsonData.photo_url = this.formatPhotoUrl(jsonData.photo_url);
                 }
                 
-                // Only check slug availability if a slug is provided and it's not empty
-                const currentSlug = data.get('slug');
-                if (currentSlug && currentSlug.trim() !== '') {
-                    try {
-                        // Get current profile
-                        const currentProfile = await this.getProfileByUserId(userId);
-                        
-                        // Only check availability if the slug changed
-                        if (currentProfile && currentSlug !== currentProfile.slug) {
-                            const slugCheck = await this.checkSlugAvailability(currentSlug);
-                            if (!slugCheck.available) {
-                                return Promise.reject(new Error('Slug is already in use'));
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Error checking current profile:', error);
-                    }
-                } else {
-                    // Remove slug from FormData if it's empty or not provided
-                    data.delete('slug');
-                }
-                
-                const response = await fetch(
-                    API_ROUTES.USERS.PROFILE_UPDATE,
-                    {
-                        method: 'PUT',
-                        headers: this.getAuthHeaders(null),
-                        credentials: 'include',
-                        body: data
-                    }
-                );
-                
-                const responseText = await response.text();
-                console.log('Profile update response:', responseText);
-                
-                if (!response.ok) {
-                    throw new Error(`Failed to update profile (${response.status}): ${responseText}`);
-                }
-    
-                try {
-                    const jsonData = JSON.parse(responseText);
-                    
-                    // Format the photo_url if it exists
-                    if (jsonData.photo_url) {
-                        jsonData.photo_url = this.formatPhotoUrl(jsonData.photo_url);
-                    }
-                    
-                    return jsonData;
-                } catch (e) {
-                    console.error("JSON Parse Error:", e);
-                    throw new Error(`Invalid JSON response: ${responseText}`);
-                }
-            } else {
-                // Handle regular object data
-                if (data.display_name) formData.append('display_name', data.display_name);
-                
-                // Only process slug if it's provided and not empty
-                // if (data.slug && data.slug.trim() !== '') {
-                //     try {
-                //         // Get current profile
-                //         const currentProfile = await this.getProfileByUserId(userId);
-                        
-                //         // Only check availability if the slug changed
-                //         if (currentProfile && data.slug !== currentProfile.slug) {
-                //             const slugCheck = await this.checkSlugAvailability(data.slug);
-                //             if (!slugCheck.available) {
-                //                 return Promise.reject(new Error('Slug is already taken'));
-                //             }
-                //         }
-                        
-                //         formData.append('slug', data.slug);
-                //     } catch (error) {
-                //         console.error('Error checking current profile:', error);
-                //     }
-                // }
-                
-                if (data.photo && data.photo instanceof File && data.photo.size > 0) {
-                    const fileExt = data.photo.name.split('.').pop();
-                    const uniqueId = crypto.randomUUID().replace(/-/g, '');
-                    const fileName = `${uniqueId}.${fileExt}`;
-                    
-                    const renamedFile = new File([data.photo], fileName, {
-                        type: data.photo.type
-                    });
-                    
-                    formData.append('photo', renamedFile);
-                    formData.append('file_path', fileName);
-                    
-                    console.log('Uploading photo:', fileName);
-                }
-                
-                const response = await fetch(
-                    API_ROUTES.USERS.PROFILE_UPDATE,
-                    {
-                        method: 'PUT',
-                        headers: this.getAuthHeaders(null),
-                        credentials: 'include',
-                        body: formData
-                    }
-                );
-                
-                const responseText = await response.text();
-                console.log('Profile update response:', responseText);
-                
-                if (!response.ok) {
-                    throw new Error(`Failed to update profile (${response.status}): ${responseText}`);
-                }
-    
-                try {
-                    const jsonData = JSON.parse(responseText);
-                    
-                    // Format the photo_url if it exists
-                    if (jsonData.photo_url) {
-                        jsonData.photo_url = this.formatPhotoUrl(jsonData.photo_url);
-                    }
-                    
-                    return jsonData;
-                } catch (e) {
-                    console.error("JSON Parse Error:", e);
-                    throw new Error(`Invalid JSON response: ${responseText}`);
-                }
+                return jsonData;
+            } catch (e) {
+                throw new Error(`Invalid JSON response: ${responseText}`);
             }
         } finally {
             // Only clear flag if this is the current request
@@ -276,62 +220,6 @@ export const ProfileService = {
             }
         }
     },
-
-    // Add this to your ProfileService.js
-
-async updateDisplayName(userId, displayName) {
-    // Add debouncing mechanism with a unique request identifier
-    const requestId = `display_name_update_${Date.now()}`;
-    
-    // Check if there's an ongoing request and prevent duplicate submission
-    if (this._updateInProgress) {
-        console.log('Update already in progress, skipping duplicate request');
-        return Promise.reject(new Error('Another update is in progress'));
-    }
-    
-    this._updateInProgress = requestId;
-    
-    try {
-        const formData = new FormData();
-        formData.append('display_name', displayName);
-        
-        const response = await fetch(
-            `${API_ROUTES.BASE_URL}/api/v1/users/me/display-name`,  // Update this with your actual route
-            {
-                method: 'PUT',
-                headers: this.getAuthHeaders(null),
-                credentials: 'include',
-                body: formData
-            }
-        );
-        
-        const responseText = await response.text();
-        console.log('Display name update response:', responseText);
-        
-        if (!response.ok) {
-            throw new Error(`Failed to update display name (${response.status}): ${responseText}`);
-        }
-
-        try {
-            const jsonData = JSON.parse(responseText);
-            
-            // Format the photo_url if it exists
-            if (jsonData.photo_url) {
-                jsonData.photo_url = this.formatPhotoUrl(jsonData.photo_url);
-            }
-            
-            return jsonData;
-        } catch (e) {
-            console.error("JSON Parse Error:", e);
-            throw new Error(`Invalid JSON response: ${responseText}`);
-        }
-    } finally {
-        // Only clear flag if this is the current request
-        if (this._updateInProgress === requestId) {
-            this._updateInProgress = null;
-        }
-    }
-},
 
     async checkSlugAvailability(slug) {
         if (!slug) {

@@ -25,14 +25,12 @@ export const AuthProvider = ({ children }) => {
       try {
         // Get user data from auth.users table
         const userData = await ProfileService.getUserByEmail(user.email);
-        console.log('AuthContext - User data:', userData);
 
         if (!userData?.id) {
           throw new Error('User ID not found');
         }
 
         const profileData = await ProfileService.getProfileByUserId(userData.id);
-        console.log('AuthContext - Profile data:', profileData);
 
         const profile = profileData || {
           display_name: userData.full_name,
@@ -40,14 +38,10 @@ export const AuthProvider = ({ children }) => {
           photo_url: null
         };
 
-        console.log('AuthContext - Final profile:', profile);
-
         const updatedUser = {
           ...userData,
           profile
         };
-
-        console.log('AuthContext - Updated user:', updatedUser);
 
         setUser(updatedUser);
         setUserProfile(profile);
@@ -55,7 +49,6 @@ export const AuthProvider = ({ children }) => {
         setAvatarKey(Date.now()); // Update avatar key to force re-render
         setError(null);
       } catch (error) {
-        console.error('AuthContext - Error:', error);
         setError(error.message);
       } finally {
         setIsLoading(false);
@@ -95,7 +88,6 @@ const updateUserProfile = async (updatedProfile) => {
   }
 
   try {
-    console.log('Updating profile with:', updatedProfile);
     
     let finalUpdatedProfile;
     
@@ -106,13 +98,10 @@ const updateUserProfile = async (updatedProfile) => {
       finalUpdatedProfile = await ProfileService.updateProfile(user.id, updatedProfile);
     }
     
-    console.log('Profile update response:', finalUpdatedProfile);
     
     // Ensure photo_url is properly formatted
     if (finalUpdatedProfile.photo_url) {
-      console.log('Original photo_url:', finalUpdatedProfile.photo_url);
       finalUpdatedProfile.photo_url = ProfileService.formatPhotoUrl(finalUpdatedProfile.photo_url);
-      console.log('Formatted photo_url:', finalUpdatedProfile.photo_url);
     }
     
     // Create new profile object with the response data
@@ -120,7 +109,6 @@ const updateUserProfile = async (updatedProfile) => {
       ...finalUpdatedProfile
     };
     
-    console.log('Final profile being set:', newProfile);
     
     // Update state
     setUserProfile(newProfile);
@@ -129,7 +117,6 @@ const updateUserProfile = async (updatedProfile) => {
         ...prevUser,
         profile: newProfile
       };
-      console.log('Updating user state with new profile:', updatedUser);
       return updatedUser;
     });
     

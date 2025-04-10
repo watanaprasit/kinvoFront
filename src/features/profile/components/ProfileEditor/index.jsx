@@ -42,7 +42,6 @@ const ProfileEditor = () => {
     return cleaned;
   }, []);
   
-
   useEffect(() => {
     if (userProfile) {
       const newFormData = {
@@ -52,7 +51,9 @@ const ProfileEditor = () => {
       };
       
       setFormData(newFormData);
-      setSlugAvailable(true); // Add this line to ensure it's true for the user's own slug
+      // Also set the original form data when loading the profile
+      setOriginalFormData(newFormData);
+      setSlugAvailable(true);
       
       if (userProfile.photo_url) {
         const cleanUrl = cleanImageUrl(userProfile.photo_url);
@@ -63,30 +64,50 @@ const ProfileEditor = () => {
     }
   }, [userProfile, user, cleanImageUrl]);
 
-  const handleInputChange = useCallback(async (e) => {
-    const { name, value } = e.target;
-        
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  
-    // Only check slug availability if it's different from current slug
-    if (name === 'slug' && value.trim()) {
-      // Skip validation if the slug is unchanged from user's current slug
-      if (userProfile && value === userProfile.slug) {
-        setSlugAvailable(true); // User's own slug is always "available" to them
-        return;
-      }
+    const handleInputChange = useCallback(async (e) => {
+      const { name, value } = e.target;
       
-      try {
-        const result = await ProfileService.checkSlugAvailability(value);
-        setSlugAvailable(result.available);
-      } catch (error) {
-        setSlugAvailable(false);
+      // Clear previous errors
+      setSubmitError(null);
+      
+      // Special validation for slug
+      if (name === 'slug') {
+        const slugRegex = /^[a-zA-Z0-9-]+$/;
+        if (value && !slugRegex.test(value)) {
+          setSubmitError('Slug can only contain letters, numbers, and hyphens.');
+          setSlugAvailable(false);
+          
+          // Still update the form data to show what the user typed
+          setFormData(prev => ({
+            ...prev,
+            [name]: value
+          }));
+          return;
+        }
       }
-    }
-  }, [userProfile]);
+          
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    
+      // Only check slug availability if it's different from current slug
+      if (name === 'slug' && value.trim()) {
+        // Skip validation if the slug is unchanged from user's current slug
+        if (userProfile && value === userProfile.slug) {
+          setSlugAvailable(true); // User's own slug is always "available" to them
+          return;
+        }
+        
+        try {
+          const result = await ProfileService.checkSlugAvailability(value);
+          setSlugAvailable(result.available);
+        } catch (error) {
+          setSlugAvailable(false);
+          setSubmitError('Error checking slug availability');
+        }
+      }
+    }, [userProfile]);
 
   const handlePhotoChange = useCallback((e) => {
     const file = e.target.files[0];
@@ -102,11 +123,16 @@ const ProfileEditor = () => {
       return;
     }
 
+    // Clean up previous blob URL if exists
+    if (previewUrl && previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
     const localPreviewUrl = URL.createObjectURL(file);
     setPreviewFile(file);
     setPreviewUrl(localPreviewUrl);
     setSubmitError(null);
-  }, []);
+  }, [previewUrl]);
 
   const getDisplayImageUrl = useCallback(() => {
     if (previewUrl) {
@@ -114,7 +140,6 @@ const ProfileEditor = () => {
     }
     
     if (userProfile?.photo_url) {
-      // Use the URL directly from the profile context
       return cleanImageUrl(userProfile.photo_url);
     }
     
@@ -124,6 +149,15 @@ const ProfileEditor = () => {
     
     return DEFAULT_AVATAR;
   }, [previewUrl, formData.photo_url, userProfile, cleanImageUrl]);
+
+  // Clean up blob URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -141,7 +175,7 @@ const ProfileEditor = () => {
       
       // Include slug if it has changed - backend will validate
       if (formData.slug.trim() !== originalFormData.slug) {
-          updateFormData.append('slug', formData.slug.trim());
+        updateFormData.append('slug', formData.slug.trim());
       }
       
       // Only include photo if there's a new one
@@ -172,11 +206,14 @@ const ProfileEditor = () => {
   
     } catch (error) {
       // Extract and display the error message
-      if (error.message.includes('Slug is already taken')) {
+        if (error.message.includes('violates check constraint')) {
+          setSubmitError('Your slug contains invalid characters. Please use only letters, numbers, and hyphens.');
+      } else if (error.message.includes('Slug is already taken')) {
           setSubmitError('This slug is already taken. Please choose another.');
       } else {
           setSubmitError(error.message || 'Failed to update profile');
       }
+
   } finally {
       setIsSubmitting(false);
   }
@@ -197,50 +234,31 @@ const ProfileEditor = () => {
     const maxRetries = 2;
     
     useEffect(() => {
-      // Reset states when the image source changes
       setLocalLoading(true);
       setRetryCount(0);
       
       const displayUrl = getDisplayImageUrl();
-      console.log('Setting image src to:', displayUrl);
       
-      // Add a timestamp to prevent caching
-      const urlWithTimestamp = displayUrl.includes('?') 
-        ? `${displayUrl}&_=${Date.now()}` 
-        : `${displayUrl}?_=${Date.now()}`;
-        
-      setImgSrc(urlWithTimestamp);
+      if (displayUrl.startsWith('blob:')) {
+        setImgSrc(displayUrl);
+      } else {
+        setImgSrc(ProfileService.formatPhotoUrl(displayUrl));
+      }
     }, [getDisplayImageUrl]); 
 
-    useEffect(() => {
-      if (userProfile?.photo_url) {
-        const url = cleanImageUrl(userProfile.photo_url);
-        console.log('Validating image URL:', url);
-        
-        // Create a test image to check if the URL is valid
-        const testImg = new Image();
-        testImg.onload = () => console.log('TEST IMAGE LOADED SUCCESSFULLY:', url);
-        testImg.onerror = () => console.log('TEST IMAGE FAILED TO LOAD:', url);
-        testImg.src = url;
-      }
-    }, [userProfile, cleanImageUrl]);
-
     const handleImageError = (e) => {
-      console.log(`Image failed to load (attempt ${retryCount + 1}):`, imgSrc);
-      
       if (retryCount < maxRetries) {
-        // Try again with a delay (in case it's a timing issue)
         setTimeout(() => {
-          console.log(`Retrying image load (attempt ${retryCount + 1})...`);
-          const newUrl = `${cleanImageUrl(imgSrc)}?_=${Date.now()}`;
-          setImgSrc(newUrl);
-          setRetryCount(prevCount => prevCount + 1);
+          if (imgSrc.startsWith('blob:')) {
+            setRetryCount(prevCount => prevCount + 1);
+          } else {
+            setImgSrc(ProfileService.formatPhotoUrl(cleanImageUrl(imgSrc)));
+            setRetryCount(prevCount => prevCount + 1);
+          }
         }, 500);
       } else {
         setLocalLoading(false);
-        // Only change to default if not already using default
         if (!e.target.src.includes('dicebear')) {
-          console.log('Falling back to default avatar');
           e.target.src = DEFAULT_AVATAR;
         }
       }
@@ -254,7 +272,6 @@ const ProfileEditor = () => {
           alt="Profile"
           className={className}
           onLoad={() => {
-            console.log('Image loaded successfully:', imgSrc);
             setLocalLoading(false);
           }}
           onError={handleImageError}
