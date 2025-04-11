@@ -9,18 +9,25 @@ const LoginForm = () => {
 
   useEffect(() => {
     const loadGoogleScript = () => {
+      // Check if script already exists to prevent duplicate loading
+      if (document.querySelector('script[src="https://accounts.google.com/gsi/client"]')) {
+        initializeGoogleSignIn();
+        return;
+      }
+      
       const script = document.createElement('script');
       script.src = 'https://accounts.google.com/gsi/client';
       script.async = true;
       script.defer = true;
+      script.onload = initializeGoogleSignIn;
       document.body.appendChild(script);
 
-      script.onload = () => {
-        initializeGoogleSignIn();
-      };
-
       return () => {
-        document.body.removeChild(script);
+        // Only remove if we added it
+        const scriptElement = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+        if (scriptElement) {
+          document.body.removeChild(scriptElement);
+        }
       };
     };
 
@@ -28,22 +35,26 @@ const LoginForm = () => {
   }, []);
 
   const initializeGoogleSignIn = () => {
-    if (window.google) {
-      window.google.accounts.id.initialize({
-        client_id: '756781097319-h7bgtos2krue9i7ofu0c8lml2ur2kpc0.apps.googleusercontent.com',
-        callback: (response) => handleGoogleLogin(response.credential),
-        auto_select: false,
-      });
+    if (window.google && document.getElementById('googleButton')) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: '756781097319-h7bgtos2krue9i7ofu0c8lml2ur2kpc0.apps.googleusercontent.com',
+          callback: (response) => handleGoogleLogin(response.credential),
+          auto_select: false,
+        });
 
-      window.google.accounts.id.renderButton(
-        document.getElementById('googleButton'),
-        {
-          type: 'standard',
-          theme: 'outline',
-          size: 'large',
-          width: '100%',
-        }
-      );
+        window.google.accounts.id.renderButton(
+          document.getElementById('googleButton'),
+          {
+            type: 'standard',
+            theme: 'outline',
+            size: 'large',
+            width: 240, // Fixed width in pixels instead of percentage
+          }
+        );
+      } catch (error) {
+        console.error("Error initializing Google Sign-In:", error);
+      }
     }
   };
 
@@ -95,7 +106,7 @@ const LoginForm = () => {
         <div className="flex-grow border-t border-gray-300"></div>
       </div>
 
-      <div id="googleButton" className="mt-3"></div>
+      <div id="googleButton" className="mt-3 flex justify-center"></div>
 
       <div className="text-center mt-4 text-sm">
         By signing in, you agree to our <a href="/terms" className="text-blue-500">Terms of Service</a> and <a href="/privacy" className="text-blue-500">Privacy Policy</a>.

@@ -131,7 +131,7 @@ export const ProfileService = {
         this._updateInProgress = requestId;
         
         try {
-          // Rest of your code...
+          // The same code as before, FormData will handle new fields automatically
           
           const response = await fetch(
             API_ROUTES.USERS.PROFILE_UPDATE,
@@ -139,7 +139,7 @@ export const ProfileService = {
               method: 'PUT',
               headers: this.getAuthHeaders(null),
               credentials: 'include',
-              body: data // Can be FormData or other
+              body: data // FormData can include title and bio now
             }
           );
           
@@ -168,13 +168,14 @@ export const ProfileService = {
             this._updateInProgress = null;
           }
         }
-      },
+    },
 
+    // The updateDisplayName method remains unchanged as it only updates display_name
     async updateDisplayName(userId, displayName) {
-        // Add debouncing mechanism with a unique request identifier
+        // Code remains the same as it's a specialized method
+        // for a single field update
         const requestId = `display_name_update_${Date.now()}`;
         
-        // Check if there's an ongoing request and prevent duplicate submission
         if (this._updateInProgress) {
             return Promise.reject(new Error('Another update is in progress'));
         }
@@ -204,7 +205,6 @@ export const ProfileService = {
             try {
                 const jsonData = JSON.parse(responseText);
                 
-                // Format the photo_url if it exists
                 if (jsonData.photo_url) {
                     jsonData.photo_url = this.formatPhotoUrl(jsonData.photo_url);
                 }
@@ -214,7 +214,54 @@ export const ProfileService = {
                 throw new Error(`Invalid JSON response: ${responseText}`);
             }
         } finally {
-            // Only clear flag if this is the current request
+            if (this._updateInProgress === requestId) {
+                this._updateInProgress = null;
+            }
+        }
+    },
+
+    // You may want to add specialized methods for title and bio if needed
+    async updateProfileField(field, value) {
+        const requestId = `${field}_update_${Date.now()}`;
+        
+        if (this._updateInProgress) {
+            return Promise.reject(new Error('Another update is in progress'));
+        }
+        
+        this._updateInProgress = requestId;
+        
+        try {
+            const formData = new FormData();
+            formData.append(field, value);
+            
+            const response = await fetch(
+                API_ROUTES.USERS.PROFILE_UPDATE,
+                {
+                    method: 'PUT',
+                    headers: this.getAuthHeaders(null),
+                    credentials: 'include',
+                    body: formData
+                }
+            );
+            
+            const responseText = await response.text();
+            
+            if (!response.ok) {
+                throw new Error(`Failed to update ${field} (${response.status}): ${responseText}`);
+            }
+
+            try {
+                const jsonData = JSON.parse(responseText);
+                
+                if (jsonData.photo_url) {
+                    jsonData.photo_url = this.formatPhotoUrl(jsonData.photo_url);
+                }
+                
+                return jsonData;
+            } catch (e) {
+                throw new Error(`Invalid JSON response: ${responseText}`);
+            }
+        } finally {
             if (this._updateInProgress === requestId) {
                 this._updateInProgress = null;
             }

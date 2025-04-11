@@ -13,7 +13,9 @@ const ProfileEditor = () => {
   const [formData, setFormData] = useState({
     display_name: '',
     slug: '',
-    photo_url: ''
+    photo_url: '',
+    title: '',
+    bio: ''
   });
   const [previewFile, setPreviewFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -24,7 +26,9 @@ const ProfileEditor = () => {
   const [originalFormData, setOriginalFormData] = useState({
     display_name: '',
     slug: '',
-    photo_url: ''
+    photo_url: '',
+    title: '',
+    bio: ''
   });
 
   // Helper function to clean URLs by removing trailing question marks
@@ -47,7 +51,9 @@ const ProfileEditor = () => {
       const newFormData = {
         display_name: userProfile.display_name || user?.full_name || '',
         slug: userProfile.slug || user?.slug || '',
-        photo_url: cleanImageUrl(userProfile.photo_url) || ''
+        photo_url: cleanImageUrl(userProfile.photo_url) || '',
+        title: userProfile.title || '',
+        bio: userProfile.bio || ''
       };
       
       setFormData(newFormData);
@@ -64,50 +70,50 @@ const ProfileEditor = () => {
     }
   }, [userProfile, user, cleanImageUrl]);
 
-    const handleInputChange = useCallback(async (e) => {
-      const { name, value } = e.target;
-      
-      // Clear previous errors
-      setSubmitError(null);
-      
-      // Special validation for slug
-      if (name === 'slug') {
-        const slugRegex = /^[a-zA-Z0-9-]+$/;
-        if (value && !slugRegex.test(value)) {
-          setSubmitError('Slug can only contain letters, numbers, and hyphens.');
-          setSlugAvailable(false);
-          
-          // Still update the form data to show what the user typed
-          setFormData(prev => ({
-            ...prev,
-            [name]: value
-          }));
-          return;
-        }
-      }
-          
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+  const handleInputChange = useCallback(async (e) => {
+    const { name, value } = e.target;
     
-      // Only check slug availability if it's different from current slug
-      if (name === 'slug' && value.trim()) {
-        // Skip validation if the slug is unchanged from user's current slug
-        if (userProfile && value === userProfile.slug) {
-          setSlugAvailable(true); // User's own slug is always "available" to them
-          return;
-        }
+    // Clear previous errors
+    setSubmitError(null);
+    
+    // Special validation for slug
+    if (name === 'slug') {
+      const slugRegex = /^[a-zA-Z0-9-]+$/;
+      if (value && !slugRegex.test(value)) {
+        setSubmitError('Slug can only contain letters, numbers, and hyphens.');
+        setSlugAvailable(false);
         
-        try {
-          const result = await ProfileService.checkSlugAvailability(value);
-          setSlugAvailable(result.available);
-        } catch (error) {
-          setSlugAvailable(false);
-          setSubmitError('Error checking slug availability');
-        }
+        // Still update the form data to show what the user typed
+        setFormData(prev => ({
+          ...prev,
+          [name]: value
+        }));
+        return;
       }
-    }, [userProfile]);
+    }
+        
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  
+    // Only check slug availability if it's different from current slug
+    if (name === 'slug' && value.trim()) {
+      // Skip validation if the slug is unchanged from user's current slug
+      if (userProfile && value === userProfile.slug) {
+        setSlugAvailable(true); // User's own slug is always "available" to them
+        return;
+      }
+      
+      try {
+        const result = await ProfileService.checkSlugAvailability(value);
+        setSlugAvailable(result.available);
+      } catch (error) {
+        setSlugAvailable(false);
+        setSubmitError('Error checking slug availability');
+      }
+    }
+  }, [userProfile]);
 
   const handlePhotoChange = useCallback((e) => {
     const file = e.target.files[0];
@@ -168,7 +174,7 @@ const ProfileEditor = () => {
     try {
       const updateFormData = new FormData();
       
-        // Only include fields that have changed
+      // Only include fields that have changed
       if (formData.display_name.trim() !== originalFormData.display_name) {
           updateFormData.append('display_name', formData.display_name.trim());
       }
@@ -176,6 +182,15 @@ const ProfileEditor = () => {
       // Include slug if it has changed - backend will validate
       if (formData.slug.trim() !== originalFormData.slug) {
         updateFormData.append('slug', formData.slug.trim());
+      }
+      
+      // Add the new fields to the form data
+      if (formData.title.trim() !== originalFormData.title) {
+        updateFormData.append('title', formData.title.trim());
+      }
+      
+      if (formData.bio.trim() !== originalFormData.bio) {
+        updateFormData.append('bio', formData.bio.trim());
       }
       
       // Only include photo if there's a new one
@@ -190,7 +205,9 @@ const ProfileEditor = () => {
         setOriginalFormData({
           display_name: updatedProfile.display_name || originalFormData.display_name,
           slug: updatedProfile.slug || originalFormData.slug,
-          photo_url: cleanImageUrl(updatedProfile.photo_url) || originalFormData.photo_url
+          photo_url: cleanImageUrl(updatedProfile.photo_url) || originalFormData.photo_url,
+          title: updatedProfile.title || originalFormData.title,
+          bio: updatedProfile.bio || originalFormData.bio
         });
         
         // Also update current form data
@@ -198,7 +215,9 @@ const ProfileEditor = () => {
           ...prev,
           display_name: updatedProfile.display_name || prev.display_name,
           slug: updatedProfile.slug || prev.slug,
-          photo_url: cleanImageUrl(updatedProfile.photo_url) || prev.photo_url
+          photo_url: cleanImageUrl(updatedProfile.photo_url) || prev.photo_url,
+          title: updatedProfile.title || prev.title,
+          bio: updatedProfile.bio || prev.bio
         }));
         
         alert('Profile updated successfully!');
@@ -206,18 +225,17 @@ const ProfileEditor = () => {
   
     } catch (error) {
       // Extract and display the error message
-        if (error.message.includes('violates check constraint')) {
+      if (error.message.includes('violates check constraint')) {
           setSubmitError('Your slug contains invalid characters. Please use only letters, numbers, and hyphens.');
       } else if (error.message.includes('Slug is already taken')) {
           setSubmitError('This slug is already taken. Please choose another.');
       } else {
           setSubmitError(error.message || 'Failed to update profile');
       }
-
-  } finally {
+    } finally {
       setIsSubmitting(false);
-  }
-};
+    }
+  };
 
   if (!user) {
     return <div>Please log in to view your profile.</div>;
@@ -338,6 +356,30 @@ const ProfileEditor = () => {
               </p>
             )}
           </div>
+          
+          <div className="form-group">
+            <label htmlFor="title">Professional Title</label>
+            <input
+              id="title"
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleInputChange}
+              placeholder="Your Professional Title"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="bio">Bio</label>
+            <textarea
+              id="bio"
+              name="bio"
+              value={formData.bio}
+              onChange={handleInputChange}
+              placeholder="Tell us about yourself"
+              rows="6"
+            />
+          </div>
 
           <button 
             type="submit" 
@@ -353,9 +395,19 @@ const ProfileEditor = () => {
         <div className="preview-card">
           <ImageComponent />
           <h3>{formData.display_name || 'Display Name'}</h3>
-          <p>{formData.slug || 'Profile Slug'}</p>
+          {formData.title && <h4>{formData.title}</h4>}
+          
+          {/* Bio moved further down with improved styling */}
+          {formData.bio && <div className="bio-container">
+            <p className="bio">{formData.bio}</p>
+          </div>}
+          
+          {/* URL display moved right above app name */}
+          <div className="profile-url">
+            <span>kinvo.com/{formData.slug || 'profile-slug'}</span>
+          </div>
+          <div className="app-name">Kinvo</div>
         </div>
-        <div className="app-name">Kinvo</div>
       </PreviewContainer>
     </StyledProfileEditor>
   );
