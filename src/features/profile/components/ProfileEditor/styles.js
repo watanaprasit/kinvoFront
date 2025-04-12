@@ -13,6 +13,67 @@ export const StyledProfileEditor = styled.div`
   }
 `;
 
+export const CompanyLogoContainer = styled.div`
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 1.5rem;
+  
+  img {
+    max-height: 40px;
+    max-width: 180px;
+  }
+`;
+
+export const SlugLinkContainer = styled.div`
+  display: flex;
+  align-items: center;
+  background-color: #f5f8ff;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  border-left: 3px solid #4a90e2;
+  font-size: 1rem;
+  
+  .slug-message {
+    font-weight: 600;
+    color: #333;
+    margin-right: 0.5rem;
+  }
+  
+  .slug-link {
+    color: #4a90e2;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: baseline;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+    
+    /* Ensure the domain and slug appear visually connected */
+    .domain {
+      font-weight: 500;
+    }
+    
+    .slug-value {
+      font-family: monospace;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: flex-start;
+    
+    .slug-message {
+      margin-bottom: 0.5rem;
+    }
+  }
+`;
+
 export const EditorContainer = styled.div`
   flex: 2;
   padding: 1.5rem;
@@ -26,13 +87,13 @@ export const EditorContainer = styled.div`
     label {
       display: block;
       margin-bottom: 0.5rem;
-      font-weight: 600; /* Increased from 500 */
-      color: #222; /* Darker text */
-      font-size: 1.1rem; /* Larger font size */
-      text-transform: uppercase; /* Added uppercase */
-      letter-spacing: 0.5px; /* Added letter spacing */
-      border-left: 3px solid #4a90e2; /* Added visual indicator */
-      padding-left: 8px; /* Added padding for the border */
+      font-weight: 600;
+      color: #222;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-left: 3px solid #4a90e2;
+      padding-left: 8px;
     }
     
     input, textarea {
@@ -52,8 +113,8 @@ export const EditorContainer = styled.div`
     textarea {
       resize: vertical;
       min-height: 120px;
-      max-height: 200px; /* Setting max height */
-      max-width: 100%; /* Ensuring it doesn't break layout */
+      max-height: 200px;
+      max-width: 100%;
     }
 
     .character-count {
@@ -130,23 +191,44 @@ export const PreviewContainer = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  position: sticky; /* Make it sticky */
-  top: 20px; /* Distance from top */
-  align-self: flex-start; /* Prevents stretching */
+  position: sticky;
+  top: 20px;
+  align-self: flex-start;
+  min-width: 420px; /* Increased by 50% from 280px */
+  
+  @media (max-width: 1100px) {
+    /* Middle section (editor) shrinks first */
+    ${EditorContainer} {
+      flex: 1.5;
+    }
+  }
+  
+  @media (max-width: 900px) {
+    ${EditorContainer} {
+      flex: 1.2;
+    }
+  }
+  
+  @media (max-width: 850px) {
+    min-width: 380px; /* Allow some phone width reduction before column layout */
+  }
+  
+  @media (max-width: 768px) {
+    min-width: unset; /* Reset min-width when in column layout */
+  }
   
   .preview-card {
     padding: 2rem;
     background-color: #ffffff;
-    border-radius: 20px; /* Increased from 8px for more phone-like appearance */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Stronger shadow */
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     position: relative;
-    border: 10px solid #e0e0e0; /* Phone-like border */
-    max-width: 720px; /* Doubled from 360px */
-    width: 100%; /* Added to ensure it takes full available space */
+    border: 10px solid #e0e0e0;
+    width: 420px; /* Increased by 50% from 280px */
     margin: 0 auto;
     
     /* Phone notch styling */
@@ -156,15 +238,15 @@ export const PreviewContainer = styled.div`
       top: 0;
       left: 50%;
       transform: translateX(-50%);
-      width: 60px;
-      height: 20px;
+      width: 80px; /* Proportionally increased */
+      height: 25px; /* Slightly increased for better proportion */
       background-color: #ccc;
       border-radius: 0 0 12px 12px;
     }
     
     .image-wrapper {
-      width: 150px;
-      height: 150px;
+      width: 180px; /* Proportionally increased from 150px */
+      height: 180px; /* Proportionally increased from 150px */
       border-radius: 50%;
       overflow: hidden;
       margin-bottom: 1.5rem;
@@ -178,30 +260,29 @@ export const PreviewContainer = styled.div`
     }
     
     h3 {
-      font-size: 1.5rem;
+      font-size: 1.8rem; /* Slightly increased from 1.5rem */
       font-weight: 600;
       margin: 0 0 0.25rem;
       color: #333;
     }
     
     h4 {
-      font-size: 1.1rem;
+      font-size: 1.3rem; /* Slightly increased from 1.1rem */
       font-weight: 500;
       margin: 0 0 1rem;
       color: #555;
     }
     
-    /* Bio styling updated for better readability */
     .bio-container {
       margin: 1.5rem 0;
-      padding: 1rem;
+      padding: 1rem 1.5rem; /* Horizontal padding increased */
       background-color: #f9f9f9;
-      border-radius: 12px; /* Increased radius */
+      border-radius: 12px;
       width: 100%;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); /* Inner shadow for depth */
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
       
       .bio {
-        font-size: 0.9rem;
+        font-size: 1rem; /* Slightly increased from 0.9rem */
         line-height: 1.6;
         color: #444;
         text-align: left;
@@ -210,11 +291,10 @@ export const PreviewContainer = styled.div`
       }
     }
     
-    /* Profile URL styling - positioned above the app name */
     .profile-url {
       margin-top: auto;
       padding-top: 1.5rem;
-      font-size: 0.9rem;
+      font-size: 1rem; /* Slightly increased from 0.9rem */
       color: #666;
       width: 100%;
       border-top: 1px solid #eee;
@@ -222,6 +302,34 @@ export const PreviewContainer = styled.div`
       
       span {
         font-family: monospace;
+      }
+    }
+    
+    @media (max-width: 850px) {
+      width: 380px; /* Allow some width reduction before column layout */
+      
+      .image-wrapper {
+        width: 160px;
+        height: 160px;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      width: 420px; /* Return to full width in column layout */
+      
+      .image-wrapper {
+        width: 180px;
+        height: 180px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      width: 100%; /* Full width on very small screens */
+      padding: 1.5rem;
+      
+      .image-wrapper {
+        width: 140px;
+        height: 140px;
       }
     }
   }
@@ -232,6 +340,5 @@ export const PreviewContainer = styled.div`
     font-weight: 700;
     color: #333;
     text-align: center;
-    /* Home button styling removed */
   }
 `;

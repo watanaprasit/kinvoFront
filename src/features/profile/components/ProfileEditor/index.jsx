@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, memo } from 'react';
 import { useAuth } from '../../../auth/context/AuthContext';
 import { ProfileService } from '../../services/profileServices';
-import { StyledProfileEditor, PreviewContainer, EditorContainer } from './styles';
+import { StyledProfileEditor, PreviewContainer, EditorContainer, SlugLinkContainer } from './styles';
 
 const DEFAULT_AVATAR = 'https://api.dicebear.com/6.x/personas/svg?seed=dude';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; 
@@ -41,7 +41,7 @@ const ProfileImage = memo(({ isPreview, previewUrl, userProfile, savedPreviewUrl
     } else {
       setImgSrc(ProfileService.formatPhotoUrl(displayUrl));
     }
-  }, [isPreview, previewUrl, getDisplayImageUrl, userProfile?.photo_url, cleanImageUrl]); 
+  }, [isPreview, previewUrl, getDisplayImageUrl, userProfile, cleanImageUrl]);
 
   const handleImageError = (e) => {
     if (retryCount < maxRetries) {
@@ -81,6 +81,9 @@ const ProfileImage = memo(({ isPreview, previewUrl, userProfile, savedPreviewUrl
   );
 });
 
+// Add proper display name to memo component
+ProfileImage.displayName = 'ProfileImage';
+
 const ProfileEditor = () => {
   const { user, userProfile, error: authError, updateUserProfile, isLoading } = useAuth();
   
@@ -107,7 +110,8 @@ const ProfileEditor = () => {
   const [slugAvailable, setSlugAvailable] = useState(true);
   const [submitError, setSubmitError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isImageLoading, setIsImageLoading] = useState(false);
+  // Fixed unused variable warning
+  const [isImageLoading] = useState(false);
   const [originalFormData, setOriginalFormData] = useState({
     display_name: '',
     slug: '',
@@ -328,6 +332,14 @@ const ProfileEditor = () => {
   return (
     <StyledProfileEditor>
       <EditorContainer>
+        {/* New slug link container at the top of the editor */}
+        <SlugLinkContainer>
+          <div className="slug-message">Your Kinvo is Live:</div>
+          <a href={`https://kinvo.com/${previewData.slug}`} target="_blank" rel="noopener noreferrer" className="slug-link">
+            <span className="domain">kinvo.com/</span><span className="slug-value">{previewData.slug || 'your-profile'}</span>
+          </a>
+        </SlugLinkContainer>
+
         {(authError || submitError) && (
           <div className="error-message">
             {authError || submitError}
