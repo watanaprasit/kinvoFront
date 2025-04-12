@@ -116,6 +116,11 @@ export const ProfileService = {
             data.photo_url = this.formatPhotoUrl(data.photo_url);
         }
         
+        // Format company_logo_url to ensure it has cache busting
+        if (data.company_logo_url) {
+            data.company_logo_url = this.formatPhotoUrl(data.company_logo_url);
+        }
+        
         return data;
     },
 
@@ -131,7 +136,7 @@ export const ProfileService = {
         this._updateInProgress = requestId;
         
         try {
-          // The same code as before, FormData will handle new fields automatically
+          // FormData will handle all fields including company_logo
           
           const response = await fetch(
             API_ROUTES.USERS.PROFILE_UPDATE,
@@ -139,7 +144,7 @@ export const ProfileService = {
               method: 'PUT',
               headers: this.getAuthHeaders(null),
               credentials: 'include',
-              body: data // FormData can include title and bio now
+              body: data // FormData can include title, bio, and company_logo now
             }
           );
           
@@ -156,6 +161,11 @@ export const ProfileService = {
             // Format the photo_url if it exists
             if (jsonData.photo_url) {
               jsonData.photo_url = this.formatPhotoUrl(jsonData.photo_url);
+            }
+            
+            // Format the company_logo_url if it exists
+            if (jsonData.company_logo_url) {
+              jsonData.company_logo_url = this.formatPhotoUrl(jsonData.company_logo_url);
             }
             
             return jsonData;
@@ -209,6 +219,11 @@ export const ProfileService = {
                     jsonData.photo_url = this.formatPhotoUrl(jsonData.photo_url);
                 }
                 
+                // Format company_logo_url if present in response
+                if (jsonData.company_logo_url) {
+                    jsonData.company_logo_url = this.formatPhotoUrl(jsonData.company_logo_url);
+                }
+                
                 return jsonData;
             } catch (e) {
                 throw new Error(`Invalid JSON response: ${responseText}`);
@@ -255,6 +270,63 @@ export const ProfileService = {
                 
                 if (jsonData.photo_url) {
                     jsonData.photo_url = this.formatPhotoUrl(jsonData.photo_url);
+                }
+                
+                // Format company_logo_url if present in response
+                if (jsonData.company_logo_url) {
+                    jsonData.company_logo_url = this.formatPhotoUrl(jsonData.company_logo_url);
+                }
+                
+                return jsonData;
+            } catch (e) {
+                throw new Error(`Invalid JSON response: ${responseText}`);
+            }
+        } finally {
+            if (this._updateInProgress === requestId) {
+                this._updateInProgress = null;
+            }
+        }
+    },
+
+    // Add a specialized method for updating company logo
+    async updateCompanyLogo(companyLogoFile) {
+        const requestId = `company_logo_update_${Date.now()}`;
+        
+        if (this._updateInProgress) {
+            return Promise.reject(new Error('Another update is in progress'));
+        }
+        
+        this._updateInProgress = requestId;
+        
+        try {
+            const formData = new FormData();
+            formData.append('company_logo', companyLogoFile);
+            
+            const response = await fetch(
+                API_ROUTES.USERS.PROFILE_UPDATE,
+                {
+                    method: 'PUT',
+                    headers: this.getAuthHeaders(null),
+                    credentials: 'include',
+                    body: formData
+                }
+            );
+            
+            const responseText = await response.text();
+            
+            if (!response.ok) {
+                throw new Error(`Failed to update company logo (${response.status}): ${responseText}`);
+            }
+
+            try {
+                const jsonData = JSON.parse(responseText);
+                
+                if (jsonData.photo_url) {
+                    jsonData.photo_url = this.formatPhotoUrl(jsonData.photo_url);
+                }
+                
+                if (jsonData.company_logo_url) {
+                    jsonData.company_logo_url = this.formatPhotoUrl(jsonData.company_logo_url);
                 }
                 
                 return jsonData;

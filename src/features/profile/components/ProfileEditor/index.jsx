@@ -81,8 +81,76 @@ const ProfileImage = memo(({ isPreview, previewUrl, userProfile, savedPreviewUrl
   );
 });
 
-// Add proper display name to memo component
+// Similar component for company logo
+const CompanyLogo = memo(({ previewUrl, userProfile, savedPreviewUrl, cleanImageUrl }) => {
+  const [imgSrc, setImgSrc] = useState('');
+  const [localLoading, setLocalLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 2;
+  
+  useEffect(() => {
+    setLocalLoading(true);
+    setRetryCount(0);
+    
+    const displayUrl = previewUrl || 
+      (userProfile?.company_logo_url ? cleanImageUrl(userProfile.company_logo_url) : '');
+    
+    if (!displayUrl) {
+      setLocalLoading(false);
+      setImgSrc('');
+      return;
+    }
+    
+    if (displayUrl.startsWith('blob:')) {
+      setImgSrc(displayUrl);
+    } else {
+      setImgSrc(ProfileService.formatPhotoUrl(displayUrl));
+    }
+  }, [previewUrl, userProfile, cleanImageUrl]);
+
+  const handleImageError = (e) => {
+    if (retryCount < maxRetries) {
+      setTimeout(() => {
+        if (imgSrc.startsWith('blob:')) {
+          setRetryCount(prevCount => prevCount + 1);
+        } else {
+          setImgSrc(ProfileService.formatPhotoUrl(cleanImageUrl(imgSrc)));
+          setRetryCount(prevCount => prevCount + 1);
+        }
+      }, 500);
+    } else {
+      setLocalLoading(false);
+      // No default fallback for company logo
+    }
+  };
+
+  if (!imgSrc) {
+    return null; // Don't render anything if no logo
+  }
+
+  return (
+    <div className="image-wrapper company-logo-wrapper">
+      {localLoading && <div className="loading-spinner">Loading...</div>}
+      <img 
+        src={imgSrc} 
+        alt="Company Logo"
+        onLoad={() => {
+          setLocalLoading(false);
+        }}
+        onError={handleImageError}
+        style={{ 
+          opacity: localLoading ? 0.5 : 1,
+          maxWidth: '100%',
+          height: 'auto'
+        }}
+      />
+    </div>
+  );
+});
+
+// Add proper display names to memo components
 ProfileImage.displayName = 'ProfileImage';
+CompanyLogo.displayName = 'CompanyLogo';
 
 const ProfileEditor = () => {
   const { user, userProfile, error: authError, updateUserProfile, isLoading } = useAuth();
@@ -92,7 +160,8 @@ const ProfileEditor = () => {
     slug: '',
     photo_url: '',
     title: '',
-    bio: ''
+    bio: '',
+    company_logo_url: ''
   });
   
   // Separate state for the preview that only updates after saving
@@ -101,12 +170,19 @@ const ProfileEditor = () => {
     slug: '',
     photo_url: '',
     title: '',
-    bio: ''
+    bio: '',
+    company_logo_url: ''
   });
   
   const [previewFile, setPreviewFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
-  const [savedPreviewUrl, setSavedPreviewUrl] = useState(''); 
+  const [savedPreviewUrl, setSavedPreviewUrl] = useState('');
+  
+  // New state for company logo
+  const [companyLogoFile, setCompanyLogoFile] = useState(null);
+  const [companyLogoPreviewUrl, setCompanyLogoPreviewUrl] = useState('');
+  const [savedCompanyLogoUrl, setSavedCompanyLogoUrl] = useState('');
+  
   const [slugAvailable, setSlugAvailable] = useState(true);
   const [submitError, setSubmitError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,7 +193,8 @@ const ProfileEditor = () => {
     slug: '',
     photo_url: '',
     title: '',
-    bio: ''
+    bio: '',
+    company_logo_url: ''
   });
 
   // Helper function to clean URLs by removing trailing question marks
@@ -142,7 +219,8 @@ const ProfileEditor = () => {
         slug: userProfile.slug || user?.slug || '',
         photo_url: cleanImageUrl(userProfile.photo_url) || '',
         title: userProfile.title || '',
-        bio: userProfile.bio || ''
+        bio: userProfile.bio || '',
+        company_logo_url: cleanImageUrl(userProfile.company_logo_url) || ''
       };
       
       setFormData(newFormData);
@@ -157,6 +235,15 @@ const ProfileEditor = () => {
       } else {
         setPreviewUrl('');
         setSavedPreviewUrl('');
+      }
+      
+      if (userProfile.company_logo_url) {
+        const cleanLogoUrl = cleanImageUrl(userProfile.company_logo_url);
+        setCompanyLogoPreviewUrl(cleanLogoUrl);
+        setSavedCompanyLogoUrl(cleanLogoUrl);
+      } else {
+        setCompanyLogoPreviewUrl('');
+        setSavedCompanyLogoUrl('');
       }
     }
   }, [userProfile, user, cleanImageUrl]);
@@ -232,14 +319,43 @@ const ProfileEditor = () => {
     setSubmitError(null);
   }, [previewUrl]);
 
+  // New handler for company logo uploads
+  const handleCompanyLogoChange = useCallback((e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!VALID_TYPES.includes(file.type)) {
+      setSubmitError('Please upload a JPEG or PNG file for company logo');
+      return;
+    }
+    
+    if (file.size > MAX_FILE_SIZE) {
+      setSubmitError('Company logo file size must be less than 5MB');
+      return;
+    }
+
+    // Clean up previous blob URL if exists
+    if (companyLogoPreviewUrl && companyLogoPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(companyLogoPreviewUrl);
+    }
+
+    const localPreviewUrl = URL.createObjectURL(file);
+    setCompanyLogoFile(file);
+    setCompanyLogoPreviewUrl(localPreviewUrl);
+    setSubmitError(null);
+  }, [companyLogoPreviewUrl]);
+
   // Clean up blob URLs when component unmounts
   useEffect(() => {
     return () => {
       if (previewUrl && previewUrl.startsWith('blob:')) {
         URL.revokeObjectURL(previewUrl);
       }
+      if (companyLogoPreviewUrl && companyLogoPreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(companyLogoPreviewUrl);
+      }
     };
-  }, [previewUrl]);
+  }, [previewUrl, companyLogoPreviewUrl]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -273,6 +389,11 @@ const ProfileEditor = () => {
       if (previewFile) {
           updateFormData.append('photo', previewFile);
       }
+
+      // Add company logo if there's a new one
+      if (companyLogoFile) {
+          updateFormData.append('company_logo', companyLogoFile);
+      }
   
       const updatedProfile = await updateUserProfile(updateFormData);
       
@@ -282,7 +403,8 @@ const ProfileEditor = () => {
           slug: updatedProfile.slug || originalFormData.slug,
           photo_url: cleanImageUrl(updatedProfile.photo_url) || originalFormData.photo_url,
           title: updatedProfile.title || originalFormData.title,
-          bio: updatedProfile.bio || originalFormData.bio
+          bio: updatedProfile.bio || originalFormData.bio,
+          company_logo_url: cleanImageUrl(updatedProfile.company_logo_url) || originalFormData.company_logo_url
         };
         
         // Update original form data with the new values
@@ -302,6 +424,13 @@ const ProfileEditor = () => {
           setSavedPreviewUrl(previewUrl);
         } else if (updatedProfile.photo_url) {
           setSavedPreviewUrl(cleanImageUrl(updatedProfile.photo_url));
+        }
+        
+        // Update the saved company logo URL if there was a new one
+        if (companyLogoFile) {
+          setSavedCompanyLogoUrl(companyLogoPreviewUrl);
+        } else if (updatedProfile.company_logo_url) {
+          setSavedCompanyLogoUrl(cleanImageUrl(updatedProfile.company_logo_url));
         }
         
         alert('Profile updated successfully!');
@@ -347,6 +476,30 @@ const ProfileEditor = () => {
         )}
         
         <form onSubmit={handleSubmit}>
+          {/* Company Logo Upload - Now placed ABOVE profile photo */}
+          <div className="photo-upload company-logo-upload">
+            <div className="image-container">
+              <CompanyLogo 
+                previewUrl={companyLogoPreviewUrl}
+                userProfile={userProfile}
+                savedPreviewUrl={savedCompanyLogoUrl}
+                cleanImageUrl={cleanImageUrl}
+              />
+              {!companyLogoPreviewUrl && !userProfile?.company_logo_url && (
+                <div className="no-logo-placeholder">No company logo</div>
+              )}
+            </div>
+            <label htmlFor="company-logo-upload">Company Logo</label>
+            <input 
+              id="company-logo-upload"
+              type="file" 
+              accept={VALID_TYPES.join(',')}
+              onChange={handleCompanyLogoChange}
+              aria-label="Upload company logo" 
+            />
+          </div>
+
+          {/* Profile Photo Upload - Now below company logo */}
           <div className="photo-upload">
             <div className="image-container">
               {isImageLoading && <div className="loading-spinner">Loading...</div>}
@@ -358,7 +511,9 @@ const ProfileEditor = () => {
                 cleanImageUrl={cleanImageUrl}
               />
             </div>
+            <label htmlFor="photo-upload">Profile Photo</label>
             <input 
+              id="photo-upload"
               type="file" 
               accept={VALID_TYPES.join(',')}
               onChange={handlePhotoChange}
@@ -433,6 +588,19 @@ const ProfileEditor = () => {
 
       <PreviewContainer>
         <div className="preview-card">
+          {/* Display company logo in preview - Now above profile image */}
+          {(savedCompanyLogoUrl || companyLogoPreviewUrl || userProfile?.company_logo_url) && (
+            <div className="company-logo-container">
+              <CompanyLogo 
+                previewUrl={companyLogoPreviewUrl}
+                userProfile={userProfile}
+                savedPreviewUrl={savedCompanyLogoUrl}
+                cleanImageUrl={cleanImageUrl}
+              />
+            </div>
+          )}
+          
+          {/* Profile Image - Now below company logo */}
           <ProfileImage 
             isPreview={true}
             previewUrl={previewUrl}
@@ -440,6 +608,7 @@ const ProfileEditor = () => {
             savedPreviewUrl={savedPreviewUrl}
             cleanImageUrl={cleanImageUrl}
           />
+          
           <h3>{previewData.display_name || 'Display Name'}</h3>
           {previewData.title && <h4>{previewData.title}</h4>}
           
