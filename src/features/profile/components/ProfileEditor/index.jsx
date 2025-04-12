@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { useAuth } from '../../../auth/context/AuthContext';
 import { ProfileService } from '../../services/profileServices';
 import { StyledProfileEditor, PreviewContainer, EditorContainer } from './styles';
@@ -6,6 +6,80 @@ import { StyledProfileEditor, PreviewContainer, EditorContainer } from './styles
 const DEFAULT_AVATAR = 'https://api.dicebear.com/6.x/personas/svg?seed=dude';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; 
 const VALID_TYPES = ['image/jpeg', 'image/png'];
+
+// Create a memoized image component that only re-renders when its props change
+const ProfileImage = memo(({ isPreview, previewUrl, userProfile, savedPreviewUrl, cleanImageUrl }) => {
+  const [imgSrc, setImgSrc] = useState('');
+  const [localLoading, setLocalLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 2;
+  
+  // Function to get display image URL is now a local function inside the component
+  const getDisplayImageUrl = useCallback(() => {
+    if (savedPreviewUrl) {
+      return savedPreviewUrl;
+    }
+    
+    if (userProfile?.photo_url) {
+      return cleanImageUrl(userProfile.photo_url);
+    }
+    
+    return DEFAULT_AVATAR;
+  }, [savedPreviewUrl, userProfile?.photo_url, cleanImageUrl]);
+  
+  useEffect(() => {
+    setLocalLoading(true);
+    setRetryCount(0);
+    
+    // Use different image source logic based on whether this is for the form or preview
+    const displayUrl = isPreview 
+      ? getDisplayImageUrl() 
+      : (previewUrl || (userProfile?.photo_url ? cleanImageUrl(userProfile.photo_url) : DEFAULT_AVATAR));
+    
+    if (displayUrl.startsWith('blob:')) {
+      setImgSrc(displayUrl);
+    } else {
+      setImgSrc(ProfileService.formatPhotoUrl(displayUrl));
+    }
+  }, [isPreview, previewUrl, getDisplayImageUrl, userProfile?.photo_url, cleanImageUrl]); 
+
+  const handleImageError = (e) => {
+    if (retryCount < maxRetries) {
+      setTimeout(() => {
+        if (imgSrc.startsWith('blob:')) {
+          setRetryCount(prevCount => prevCount + 1);
+        } else {
+          setImgSrc(ProfileService.formatPhotoUrl(cleanImageUrl(imgSrc)));
+          setRetryCount(prevCount => prevCount + 1);
+        }
+      }, 500);
+    } else {
+      setLocalLoading(false);
+      if (!e.target.src.includes('dicebear')) {
+        e.target.src = DEFAULT_AVATAR;
+      }
+    }
+  };
+
+  return (
+    <div className="image-wrapper">
+      {localLoading && <div className="loading-spinner">Loading...</div>}
+      <img 
+        src={imgSrc} 
+        alt="Profile"
+        onLoad={() => {
+          setLocalLoading(false);
+        }}
+        onError={handleImageError}
+        style={{ 
+          opacity: localLoading ? 0.5 : 1,
+          maxWidth: '100%',
+          height: 'auto'
+        }}
+      />
+    </div>
+  );
+});
 
 const ProfileEditor = () => {
   const { user, userProfile, error: authError, updateUserProfile, isLoading } = useAuth();
@@ -17,8 +91,19 @@ const ProfileEditor = () => {
     title: '',
     bio: ''
   });
+  
+  // Separate state for the preview that only updates after saving
+  const [previewData, setPreviewData] = useState({
+    display_name: '',
+    slug: '',
+    photo_url: '',
+    title: '',
+    bio: ''
+  });
+  
   const [previewFile, setPreviewFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [savedPreviewUrl, setSavedPreviewUrl] = useState(''); 
   const [slugAvailable, setSlugAvailable] = useState(true);
   const [submitError, setSubmitError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,19 +142,22 @@ const ProfileEditor = () => {
       };
       
       setFormData(newFormData);
-      // Also set the original form data when loading the profile
+      setPreviewData(newFormData); 
       setOriginalFormData(newFormData);
       setSlugAvailable(true);
       
       if (userProfile.photo_url) {
         const cleanUrl = cleanImageUrl(userProfile.photo_url);
         setPreviewUrl(cleanUrl);
+        setSavedPreviewUrl(cleanUrl);
       } else {
         setPreviewUrl('');
+        setSavedPreviewUrl('');
       }
     }
   }, [userProfile, user, cleanImageUrl]);
 
+  // Modified handleInputChange to use a debounced slug validation
   const handleInputChange = useCallback(async (e) => {
     const { name, value } = e.target;
     
@@ -140,22 +228,6 @@ const ProfileEditor = () => {
     setSubmitError(null);
   }, [previewUrl]);
 
-  const getDisplayImageUrl = useCallback(() => {
-    if (previewUrl) {
-      return previewUrl;
-    }
-    
-    if (userProfile?.photo_url) {
-      return cleanImageUrl(userProfile.photo_url);
-    }
-    
-    if (formData.photo_url) {
-      return cleanImageUrl(formData.photo_url);
-    }
-    
-    return DEFAULT_AVATAR;
-  }, [previewUrl, formData.photo_url, userProfile, cleanImageUrl]);
-
   // Clean up blob URLs when component unmounts
   useEffect(() => {
     return () => {
@@ -201,24 +273,32 @@ const ProfileEditor = () => {
       const updatedProfile = await updateUserProfile(updateFormData);
       
       if (updatedProfile) {
-        // Update original form data with the new values
-        setOriginalFormData({
+        const updatedFormData = {
           display_name: updatedProfile.display_name || originalFormData.display_name,
           slug: updatedProfile.slug || originalFormData.slug,
           photo_url: cleanImageUrl(updatedProfile.photo_url) || originalFormData.photo_url,
           title: updatedProfile.title || originalFormData.title,
           bio: updatedProfile.bio || originalFormData.bio
-        });
+        };
+        
+        // Update original form data with the new values
+        setOriginalFormData(updatedFormData);
         
         // Also update current form data
         setFormData(prev => ({
           ...prev,
-          display_name: updatedProfile.display_name || prev.display_name,
-          slug: updatedProfile.slug || prev.slug,
-          photo_url: cleanImageUrl(updatedProfile.photo_url) || prev.photo_url,
-          title: updatedProfile.title || prev.title,
-          bio: updatedProfile.bio || prev.bio
+          ...updatedFormData
         }));
+        
+        // IMPORTANT: Only now update the preview data
+        setPreviewData(updatedFormData);
+        
+        // Update the saved preview URL if there was a new photo
+        if (previewFile) {
+          setSavedPreviewUrl(previewUrl);
+        } else if (updatedProfile.photo_url) {
+          setSavedPreviewUrl(cleanImageUrl(updatedProfile.photo_url));
+        }
         
         alert('Profile updated successfully!');
       }
@@ -245,64 +325,6 @@ const ProfileEditor = () => {
     return <div>Loading profile...</div>;
   }
 
-  const ImageComponent = ({ className = '' }) => {
-    const [imgSrc, setImgSrc] = useState('');
-    const [localLoading, setLocalLoading] = useState(true);
-    const [retryCount, setRetryCount] = useState(0);
-    const maxRetries = 2;
-    
-    useEffect(() => {
-      setLocalLoading(true);
-      setRetryCount(0);
-      
-      const displayUrl = getDisplayImageUrl();
-      
-      if (displayUrl.startsWith('blob:')) {
-        setImgSrc(displayUrl);
-      } else {
-        setImgSrc(ProfileService.formatPhotoUrl(displayUrl));
-      }
-    }, [getDisplayImageUrl]); 
-
-    const handleImageError = (e) => {
-      if (retryCount < maxRetries) {
-        setTimeout(() => {
-          if (imgSrc.startsWith('blob:')) {
-            setRetryCount(prevCount => prevCount + 1);
-          } else {
-            setImgSrc(ProfileService.formatPhotoUrl(cleanImageUrl(imgSrc)));
-            setRetryCount(prevCount => prevCount + 1);
-          }
-        }, 500);
-      } else {
-        setLocalLoading(false);
-        if (!e.target.src.includes('dicebear')) {
-          e.target.src = DEFAULT_AVATAR;
-        }
-      }
-    };
-  
-    return (
-      <div className="image-wrapper">
-        {localLoading && <div className="loading-spinner">Loading...</div>}
-        <img 
-          src={imgSrc} 
-          alt="Profile"
-          className={className}
-          onLoad={() => {
-            setLocalLoading(false);
-          }}
-          onError={handleImageError}
-          style={{ 
-            opacity: localLoading ? 0.5 : 1,
-            maxWidth: '100%',
-            height: 'auto'
-          }}
-        />
-      </div>
-    );
-  };
-
   return (
     <StyledProfileEditor>
       <EditorContainer>
@@ -316,7 +338,13 @@ const ProfileEditor = () => {
           <div className="photo-upload">
             <div className="image-container">
               {isImageLoading && <div className="loading-spinner">Loading...</div>}
-              <ImageComponent />
+              <ProfileImage 
+                isPreview={false}
+                previewUrl={previewUrl}
+                userProfile={userProfile}
+                savedPreviewUrl={savedPreviewUrl}
+                cleanImageUrl={cleanImageUrl}
+              />
             </div>
             <input 
               type="file" 
@@ -393,18 +421,22 @@ const ProfileEditor = () => {
 
       <PreviewContainer>
         <div className="preview-card">
-          <ImageComponent />
-          <h3>{formData.display_name || 'Display Name'}</h3>
-          {formData.title && <h4>{formData.title}</h4>}
+          <ProfileImage 
+            isPreview={true}
+            previewUrl={previewUrl}
+            userProfile={userProfile}
+            savedPreviewUrl={savedPreviewUrl}
+            cleanImageUrl={cleanImageUrl}
+          />
+          <h3>{previewData.display_name || 'Display Name'}</h3>
+          {previewData.title && <h4>{previewData.title}</h4>}
           
-          {/* Bio moved further down with improved styling */}
-          {formData.bio && <div className="bio-container">
-            <p className="bio">{formData.bio}</p>
+          {previewData.bio && <div className="bio-container">
+            <p className="bio">{previewData.bio}</p>
           </div>}
           
-          {/* URL display moved right above app name */}
           <div className="profile-url">
-            <span>kinvo.com/{formData.slug || 'profile-slug'}</span>
+            <span>kinvo.com/{previewData.slug || 'profile-slug'}</span>
           </div>
           <div className="app-name">Kinvo</div>
         </div>
