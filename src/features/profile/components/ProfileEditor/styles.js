@@ -7,9 +7,70 @@ export const StyledProfileEditor = styled.div`
   padding: 1.5rem;
   max-width: 1200px;
   margin: 0 auto;
+  position: relative; /* Added for positioning the ErrorToast */
   
   @media (max-width: 768px) {
     flex-direction: column;
+  }
+`;
+
+export const ErrorToast = styled.div`
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #fff0f0;
+  border-left: 3px solid #ff4d4f;
+  color: #cf1322;
+  border: 1px solid #ff4d4f;
+  border-radius: 4px;
+  padding: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  width: 350px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  animation: slideIn 0.3s ease-out;
+  
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  .error-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    
+    .error-icon {
+      font-size: 1.2rem;
+    }
+    
+    p {
+      margin: 0;
+      flex: 1;
+    }
+  }
+  
+  .close-button {
+    background: transparent;
+    border: none;
+    color: #cf1322;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    margin-left: 0.5rem;
+    
+    &:hover {
+      color: #a8071a;
+    }
   }
 `;
 
@@ -139,6 +200,19 @@ export const EditorContainer = styled.div`
   .photo-upload {
     margin-bottom: 1.5rem;
     
+    /* Move the label above the image container */
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #222;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-left: 3px solid #4a90e2;
+      padding-left: 8px;
+    }
+    
     .image-container {
       width: 120px;
       height: 120px;
@@ -165,6 +239,109 @@ export const EditorContainer = styled.div`
         justify-content: center;
         background: rgba(255, 255, 255, 0.7);
       }
+
+      .edit-icon {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        background-color: #fff;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        cursor: pointer;
+        border: 1px solid #ddd;
+        z-index: 2;
+        
+        &:hover {
+          background-color: #f0f0f0;
+        }
+        
+        span {
+          font-size: 16px;
+        }
+      }
+    }
+  }
+  
+  /* New styling for company logo upload */
+  .company-logo-upload {
+    /* Ensure the label is above the image container */
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #222;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-left: 3px solid #4a90e2;
+      padding-left: 8px;
+    }
+    
+    .image-container {
+      width: 200px;
+      height: 80px;
+      border-radius: 8px; /* Rectangular shape with slight rounding */
+      overflow: hidden;
+      margin-bottom: 1rem;
+      position: relative;
+      border: 3px solid #ddd;
+      
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain; /* Changed to contain for logos */
+        background-color: #f5f5f5; /* Light background for logo */
+      }
+      
+      .no-logo-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f5f5f5;
+        color: #aaa;
+        font-style: italic;
+      }
+      
+      .edit-icon {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        background-color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        cursor: pointer;
+        border: 1px solid #e5e5e5;
+        z-index: 2;
+        
+        &:hover {
+          background-color: #f5f5f5;
+          border-color: #ccc;
+          
+          span {
+            color: #333;
+          }
+        }
+        
+        span {
+          font-size: 12px;
+          color: #aaa;
+          transform: rotate(-45deg); /* Angled pencil similar to image */
+          display: block;
+          transition: color 0.2s ease;
+        }
+      }
     }
   }
   
@@ -187,16 +364,6 @@ export const EditorContainer = styled.div`
       background-color: #a0a0a0;
       cursor: not-allowed;
     }
-  }
-  
-  .error-message {
-    margin-bottom: 1rem;
-    padding: 0.75rem;
-    background-color: #fff0f0;
-    border-left: 3px solid #ff4d4f;
-    color: #cf1322;
-    border: 1px solid #ff4d4f; /* Complete border for error message */
-    border-radius: 4px;
   }
 `;
 
@@ -261,37 +428,49 @@ export const PreviewContainer = styled.div`
     /* Company logo area */
     .company-logo-container {
       width: 100%;
-      background-color: #aa9f94; /* Taupe color for logo area */
-      padding: 20px;
       display: flex;
       justify-content: center;
       align-items: center;
-      margin-bottom: 0;
-      border-bottom: 3px solid #8c7e73; /* Adding border */
+      padding: 20px;
       
-      img {
-        max-height: 80px;
-        max-width: 240px;
-        object-fit: contain;
+      /* This is the actual floating container: */
+      > div {
+        display: inline-flex;
+        background-color: #c0b8ae;
+        padding: 1rem;
+        border-radius: 6px;
+        border: 2px solid #8c7e73;
+        border-left: 3px solid #8c7e73;
+        max-width: fit-content;
+      }
+      
+      .no-logo-placeholder {
+        width: 240px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f5f5f5;
+        color: #aaa;
+        font-style: italic;
         border-radius: 8px;
       }
     }
 
     .company-logo-wrapper {
-        width: auto;
-        height: auto;
-        border-radius: 0;
-        overflow: visible;
-        box-shadow: none;
-        border: none;
-        margin-top: 0;
-        
-        img {
-          max-height: 80px;
-          max-width: 240px;
-          border-radius: 8px;
-          object-fit: contain;
-        }
+      width: auto;
+      height: auto;
+      border-radius: 0;
+      overflow: visible;
+      box-shadow: none;
+      border: none;
+      margin-top: 0;
+      
+      img {
+        max-height: 80px;
+        max-width: 240px;
+        border-radius: 8px;
+        object-fit: contain;
       }
     }
     

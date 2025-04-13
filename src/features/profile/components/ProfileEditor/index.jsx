@@ -1,14 +1,57 @@
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { useAuth } from '../../../auth/context/AuthContext';
 import { ProfileService } from '../../services/profileServices';
-import { StyledProfileEditor, PreviewContainer, EditorContainer } from './styles';
+import { StyledProfileEditor, PreviewContainer, EditorContainer, SlugLinkContainer, ErrorToast } from './styles';
 
 const DEFAULT_AVATAR = 'https://api.dicebear.com/6.x/personas/svg?seed=dude';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; 
 const VALID_TYPES = ['image/jpeg', 'image/png'];
 
-// Create a memoized image component that only re-renders when its props change
+// Helper function to convert technical errors to user-friendly messages
+const getUserFriendlyError = (error) => {
+  // Check for specific error patterns and return user-friendly alternatives
+  if (error.includes('violates check constraint')) {
+    return 'Your profile name can only contain letters, numbers, and hyphens.';
+  } else if (error.includes('Slug is already taken')) {
+    return 'This profile name is already being used by someone else. Please choose another one.';
+  } else if (error.includes('maximum size')) {
+    return 'Your file is too large. Please choose a smaller image (under 5MB).';
+  } else if (error.includes('JPEG or PNG')) {
+    return 'Please upload a photo in JPG or PNG format only.';
+  } else if (error.includes('network error') || error.includes('timeout')) {
+    return 'We couldn\'t connect to our servers. Please check your internet connection and try again.';
+  } else if (error.includes('validation')) {
+    return 'Something doesn\'t look right with your information. Please double-check what you\'ve entered.';
+  } else if (error.includes('unauthorized') || error.includes('401')) {
+    return 'Your session has expired. Please refresh the page and log in again.';
+  } else if (error.includes('30 characters or less')) {
+    return 'Your display name must be 30 characters or less.';
+  } else if (error.includes('Display name must be')) {
+    return 'Your display name must be 30 characters or less.';
+  }
+  
+  // Default user-friendly message
+  try {
+    if (error.includes('{') && error.includes('}')) {
+      const jsonMatch = error.match(/\{.*\}/);
+      if (jsonMatch) {
+        const errorObj = JSON.parse(jsonMatch[0]);
+        if (errorObj.detail) {
+          return errorObj.detail; // Return the specific error message from the API
+        }
+      }
+    }
+  } catch (e) {
+    // If JSON parsing fails, continue to default message
+  }
+  
+  // Default user-friendly message
+  return 'Something went wrong. Please try again or contact support if the problem persists.';
+};
+
+// Profile Image component remains unchanged
 const ProfileImage = memo(({ isPreview, previewUrl, userProfile, savedPreviewUrl, cleanImageUrl }) => {
+  // Component code unchanged
   const [imgSrc, setImgSrc] = useState('');
   const [localLoading, setLocalLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
@@ -81,8 +124,9 @@ const ProfileImage = memo(({ isPreview, previewUrl, userProfile, savedPreviewUrl
   );
 });
 
-// Similar component for company logo
+// Company Logo component remains unchanged
 const CompanyLogo = memo(({ previewUrl, userProfile, savedPreviewUrl, cleanImageUrl }) => {
+  // Component code unchanged
   const [imgSrc, setImgSrc] = useState('');
   const [localLoading, setLocalLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
@@ -155,6 +199,10 @@ CompanyLogo.displayName = 'CompanyLogo';
 const ProfileEditor = () => {
   const { user, userProfile, error: authError, updateUserProfile, isLoading } = useAuth();
   
+  // Fix 1: Use useRef instead of the non-standard useCallback implementation
+  const photoInputRef = useRef(null);
+  const companyLogoInputRef = useRef(null);
+  
   const [formData, setFormData] = useState({
     display_name: '',
     slug: '',
@@ -196,6 +244,9 @@ const ProfileEditor = () => {
     bio: '',
     company_logo_url: ''
   });
+  
+  // New state for error toast visibility
+  const [showErrorToast, setShowErrorToast] = useState(false);
 
   // Helper function to clean URLs by removing trailing question marks
   const cleanImageUrl = useCallback((url) => {
@@ -248,6 +299,27 @@ const ProfileEditor = () => {
     }
   }, [userProfile, user, cleanImageUrl]);
 
+  // Effect to show error toast when error changes
+  useEffect(() => {
+    if (submitError || authError) {
+      setShowErrorToast(true);
+      
+      // Auto hide after 5 seconds
+      const timer = setTimeout(() => {
+        setShowErrorToast(false);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [submitError, authError]);
+
+  // Fix 2: Simplified handlePencilClick to directly access the ref 
+  const handlePencilClick = (inputRef) => {
+    if (inputRef && inputRef.current) {
+      inputRef.current.click();
+    }
+  };
+
   // Modified handleInputChange to use a debounced slug validation
   const handleInputChange = useCallback(async (e) => {
     const { name, value } = e.target;
@@ -259,7 +331,7 @@ const ProfileEditor = () => {
     if (name === 'slug') {
       const slugRegex = /^[a-zA-Z0-9-]+$/;
       if (value && !slugRegex.test(value)) {
-        setSubmitError('Slug can only contain letters, numbers, and hyphens.');
+        setSubmitError('Your profile name can only contain letters, numbers, and hyphens.');
         setSlugAvailable(false);
         
         // Still update the form data to show what the user typed
@@ -287,9 +359,13 @@ const ProfileEditor = () => {
       try {
         const result = await ProfileService.checkSlugAvailability(value);
         setSlugAvailable(result.available);
+        
+        if (!result.available) {
+          setSubmitError('This profile name is already being used by someone else. Please choose another one.');
+        }
       } catch (error) {
         setSlugAvailable(false);
-        setSubmitError('Error checking slug availability');
+        setSubmitError('We couldn\'t check if this profile name is available. Please try again.');
       }
     }
   }, [userProfile]);
@@ -299,12 +375,12 @@ const ProfileEditor = () => {
     if (!file) return;
 
     if (!VALID_TYPES.includes(file.type)) {
-      setSubmitError('Please upload a JPEG or PNG file');
+      setSubmitError('Please upload a JPG or PNG image file for your profile photo.');
       return;
     }
     
     if (file.size > MAX_FILE_SIZE) {
-      setSubmitError('File size must be less than 5MB');
+      setSubmitError('Your profile photo is too large. Please choose an image under 5MB.');
       return;
     }
 
@@ -325,12 +401,12 @@ const ProfileEditor = () => {
     if (!file) return;
 
     if (!VALID_TYPES.includes(file.type)) {
-      setSubmitError('Please upload a JPEG or PNG file for company logo');
+      setSubmitError('Please upload a JPG or PNG image file for your company logo.');
       return;
     }
     
     if (file.size > MAX_FILE_SIZE) {
-      setSubmitError('Company logo file size must be less than 5MB');
+      setSubmitError('Your company logo is too large. Please choose an image under 5MB.');
       return;
     }
 
@@ -344,6 +420,11 @@ const ProfileEditor = () => {
     setCompanyLogoPreviewUrl(localPreviewUrl);
     setSubmitError(null);
   }, [companyLogoPreviewUrl]);
+
+  // Close error toast handler
+  const handleCloseErrorToast = () => {
+    setShowErrorToast(false);
+  };
 
   // Clean up blob URLs when component unmounts
   useEffect(() => {
@@ -433,19 +514,31 @@ const ProfileEditor = () => {
           setSavedCompanyLogoUrl(cleanImageUrl(updatedProfile.company_logo_url));
         }
         
-        alert('Profile updated successfully!');
+        // More friendly success message
+        alert('Your profile has been updated successfully!');
       }
+
+      setIsSubmitting(false);
   
     } catch (error) {
-      // Extract and display the error message
-      if (error.message.includes('violates check constraint')) {
-          setSubmitError('Your slug contains invalid characters. Please use only letters, numbers, and hyphens.');
-      } else if (error.message.includes('Slug is already taken')) {
-          setSubmitError('This slug is already taken. Please choose another.');
-      } else {
-          setSubmitError(error.message || 'Failed to update profile');
+      console.error('Profile update error:', error); // Log the full error for debugging
+      // Extract error message, handling different error object structures
+      let errorMessage = 'Unknown error';
+      if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response && error.response.data) {
+        // Handle API error responses
+        errorMessage = typeof error.response.data === 'string' 
+          ? error.response.data 
+          : error.response.data.message || JSON.stringify(error.response.data);
       }
-    } finally {
+      
+      // Convert to user-friendly message and set in state
+      setSubmitError(getUserFriendlyError(errorMessage));
+      setShowErrorToast(true); // Explicitly show the toast
+
       setIsSubmitting(false);
     }
   };
@@ -455,44 +548,75 @@ const ProfileEditor = () => {
   }
 
   if (isLoading) {
-    return <div>Loading profile...</div>;
+    return <div>Loading your profile...</div>;
   }
 
   return (
     <StyledProfileEditor>
-      <EditorContainer>
-        
-        {(authError || submitError) && (
-          <div className="error-message">
-            {authError || submitError}
+      {/* Error Toast Component with user-friendly messages */}
+      {showErrorToast && (authError || submitError) && (
+        <ErrorToast>
+          <div className="error-content">
+            <span className="error-icon">⚠️</span>
+            <p>{authError ? getUserFriendlyError(authError) : submitError}</p>
           </div>
+          <button className="close-button" onClick={handleCloseErrorToast}>×</button>
+        </ErrorToast>
+      )}
+      
+      <EditorContainer>
+        {/* Slug Link Container now inside the editor component */}
+        {formData.slug && (
+          <SlugLinkContainer>
+            <div className="slug-message">Your Kinvo is Live:</div>
+            <a 
+              href={`https://kinvo.com/${formData.slug}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="slug-link"
+            >
+              <span className="domain">kinvo.com/</span>
+              <span className="slug-value">{formData.slug}</span>
+            </a>
+          </SlugLinkContainer>
         )}
         
         <form onSubmit={handleSubmit}>
-          <div className="photo-upload company-logo-upload">
-            <div className="image-container">
-              <CompanyLogo 
-                previewUrl={companyLogoPreviewUrl}
-                userProfile={userProfile}
-                savedPreviewUrl={savedCompanyLogoUrl}
-                cleanImageUrl={cleanImageUrl}
+            <div className="photo-upload company-logo-upload">
+              {/* Label moved to the top */}
+              <label htmlFor="company-logo-upload">Company Branding</label>
+              <div className="image-container">
+                <CompanyLogo 
+                  previewUrl={companyLogoPreviewUrl}
+                  userProfile={userProfile}
+                  savedPreviewUrl={savedCompanyLogoUrl}
+                  cleanImageUrl={cleanImageUrl}
+                />
+                {!companyLogoPreviewUrl && !userProfile?.company_logo_url && (
+                  <div className="no-logo-placeholder">No company logo</div>
+                )}
+                {/* Removed pencil icon, keeping the click functionality */}
+                <div 
+                  className="edit-icon" 
+                  onClick={() => handlePencilClick(companyLogoInputRef)}
+                >
+                </div>
+              </div>
+              <input 
+                id="company-logo-upload"
+                type="file" 
+                accept={VALID_TYPES.join(',')}
+                onChange={handleCompanyLogoChange}
+                aria-label="Upload company logo"
+                ref={companyLogoInputRef}
+                style={{ display: 'none' }} // Hide the input
               />
-              {!companyLogoPreviewUrl && !userProfile?.company_logo_url && (
-                <div className="no-logo-placeholder">No company logo</div>
-              )}
-            </div>
-            <label htmlFor="company-logo-upload">Company Logo</label>
-            <input 
-              id="company-logo-upload"
-              type="file" 
-              accept={VALID_TYPES.join(',')}
-              onChange={handleCompanyLogoChange}
-              aria-label="Upload company logo" 
-            />
-          </div>
+           </div>
 
           {/* Profile Photo Upload - Now below company logo */}
           <div className="photo-upload">
+            {/* Label moved to the top */}
+            <label htmlFor="photo-upload">Profile Picture</label>
             <div className="image-container">
               {isImageLoading && <div className="loading-spinner">Loading...</div>}
               <ProfileImage 
@@ -502,14 +626,21 @@ const ProfileEditor = () => {
                 savedPreviewUrl={savedPreviewUrl}
                 cleanImageUrl={cleanImageUrl}
               />
+              {/* Removed pencil icon, keeping the click functionality */}
+              <div 
+                className="edit-icon" 
+                onClick={() => handlePencilClick(photoInputRef)}
+              >
+              </div>
             </div>
-            <label htmlFor="photo-upload">Profile Photo</label>
             <input 
               id="photo-upload"
               type="file" 
               accept={VALID_TYPES.join(',')}
               onChange={handlePhotoChange}
-              aria-label="Upload profile photo" 
+              aria-label="Upload profile photo"
+              ref={photoInputRef}
+              style={{ display: 'none' }} // Hide the input
             />
           </div>
           
@@ -521,25 +652,25 @@ const ProfileEditor = () => {
               name="display_name"
               value={formData.display_name}
               onChange={handleInputChange}
-              placeholder="Display Name"
+              placeholder="Your name as shown on your profile"
               required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="slug">Profile Slug</label>
+            <label htmlFor="slug">Profile Name</label>
             <input
               id="slug"
               type="text"
               name="slug"
               value={formData.slug}
               onChange={handleInputChange}
-              placeholder="Profile Slug"
+              placeholder="Choose a unique profile name (letters, numbers, hyphens only)"
               required
             />
             {!slugAvailable && formData.slug && (
               <p className="text-red-500">
-                This slug is already taken. Please choose another.
+                This profile name is already being used by someone else. Please choose another one.
               </p>
             )}
           </div>
@@ -552,7 +683,7 @@ const ProfileEditor = () => {
               name="title"
               value={formData.title}
               onChange={handleInputChange}
-              placeholder="Your Professional Title"
+              placeholder="Your job title or professional role"
             />
           </div>
 
@@ -563,7 +694,7 @@ const ProfileEditor = () => {
               name="bio"
               value={formData.bio}
               onChange={handleInputChange}
-              placeholder="Tell us about yourself"
+              placeholder="Tell visitors about yourself, your experience, and what you do"
               rows="6"
             />
           </div>
@@ -573,7 +704,7 @@ const ProfileEditor = () => {
             disabled={isSubmitting || !slugAvailable || !formData.slug}
             className={isSubmitting || !slugAvailable || !formData.slug ? 'disabled' : ''}
           >
-            {isSubmitting ? 'Saving...' : 'Save Changes'}
+            {isSubmitting ? 'Saving Changes...' : 'Save Changes'}
           </button>
         </form>
       </EditorContainer>
@@ -581,7 +712,7 @@ const ProfileEditor = () => {
       <PreviewContainer>
         <div className="preview-card">
           {/* Company Logo Area with background color */}
-          <div className="company-logo-container" style={{ backgroundColor: '#4a90e2' }}>
+          <div className="company-logo-container">
             <CompanyLogo 
               previewUrl={companyLogoPreviewUrl}
               userProfile={userProfile}
@@ -628,7 +759,7 @@ const ProfileEditor = () => {
             <div className="kinvo-branding">
               <div className="brand-text">Kinvo</div>
               <div className="profile-url">
-                <span>kinvo.com/{previewData.slug || 'profile-slug'}</span>
+                <span>kinvo.com/{previewData.slug || 'profile-name'}</span>
               </div>
             </div>
           </div>
