@@ -14,25 +14,34 @@ export const StyledProfileEditor = styled.div`
 `;
 
 export const CompanyLogoContainer = styled.div`
-  display: flex;
+  display: inline-flex; /* Changed to inline-flex */
   justify-content: flex-start;
   margin-bottom: 1.5rem;
+  background-color: #c0b8ae;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 2px solid #8c7e73;
+  border-left: 3px solid #8c7e73;
+  align-self: flex-start; /* Add this to prevent stretching */
+  max-width: fit-content; /* Make container only as wide as content */
   
   img {
     max-height: 40px;
     max-width: 180px;
+    border-radius: 8px;
   }
 `;
 
 export const SlugLinkContainer = styled.div`
   display: flex;
   align-items: center;
-  background-color: #f5f8ff;
+  background-color: #c0b8ae; /* Taupe color for slug area */
   padding: 1rem;
   border-radius: 6px;
   margin-bottom: 1.5rem;
-  border-left: 3px solid #4a90e2;
+  border-left: 3px solid #8c7e73; /* Darker taupe border */
   font-size: 1rem;
+  border: 2px solid #8c7e73; /* Complete border around slug container */
   
   .slug-message {
     font-weight: 600;
@@ -79,7 +88,8 @@ export const EditorContainer = styled.div`
   padding: 1.5rem;
   background-color: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); /* Enhanced shadow */
+  border: 2px solid #ddd; /* Adding obvious border */
   
   .form-group {
     margin-bottom: 1.5rem;
@@ -99,7 +109,7 @@ export const EditorContainer = styled.div`
     input, textarea {
       width: 100%;
       padding: 0.75rem;
-      border: 1px solid #ddd;
+      border: 1px solid #bbb; /* Darker border for input fields */
       border-radius: 4px;
       font-size: 1rem;
       
@@ -136,6 +146,7 @@ export const EditorContainer = styled.div`
       overflow: hidden;
       margin-bottom: 1rem;
       position: relative;
+      border: 3px solid #ddd; /* Adding border to image container */
       
       img {
         width: 100%;
@@ -184,6 +195,8 @@ export const EditorContainer = styled.div`
     background-color: #fff0f0;
     border-left: 3px solid #ff4d4f;
     color: #cf1322;
+    border: 1px solid #ff4d4f; /* Complete border for error message */
+    border-radius: 4px;
   }
 `;
 
@@ -194,10 +207,9 @@ export const PreviewContainer = styled.div`
   position: sticky;
   top: 20px;
   align-self: flex-start;
-  min-width: 420px; /* Increased by 50% from 280px */
+  min-width: 420px;
   
   @media (max-width: 1100px) {
-    /* Middle section (editor) shrinks first */
     ${EditorContainer} {
       flex: 1.5;
     }
@@ -210,26 +222,27 @@ export const PreviewContainer = styled.div`
   }
   
   @media (max-width: 850px) {
-    min-width: 380px; /* Allow some phone width reduction before column layout */
+    min-width: 380px;
   }
   
   @media (max-width: 768px) {
-    min-width: unset; /* Reset min-width when in column layout */
+    min-width: unset;
   }
   
   .preview-card {
-    padding: 2rem;
+    padding: 0;
     background-color: #ffffff;
-    border-radius: 20px;
+    border-radius: 40px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     position: relative;
-    border: 10px solid #e0e0e0;
-    width: 420px; /* Increased by 50% from 280px */
+    border: 10px solid #222;
+    width: 420px;
     margin: 0 auto;
+    overflow: hidden;
     
     /* Phone notch styling */
     &:before {
@@ -238,19 +251,71 @@ export const PreviewContainer = styled.div`
       top: 0;
       left: 50%;
       transform: translateX(-50%);
-      width: 80px; /* Proportionally increased */
-      height: 25px; /* Slightly increased for better proportion */
-      background-color: #ccc;
+      width: 80px;
+      height: 25px;
+      background-color: #222;
       border-radius: 0 0 12px 12px;
+      z-index: 2;
+    }
+    
+    /* Company logo area */
+    .company-logo-container {
+      width: 100%;
+      background-color: #aa9f94; /* Taupe color for logo area */
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 0;
+      border-bottom: 3px solid #8c7e73; /* Adding border */
+      
+      img {
+        max-height: 80px;
+        max-width: 240px;
+        object-fit: contain;
+        border-radius: 8px;
+      }
+    }
+
+    .company-logo-wrapper {
+        width: auto;
+        height: auto;
+        border-radius: 0;
+        overflow: visible;
+        box-shadow: none;
+        border: none;
+        margin-top: 0;
+        
+        img {
+          max-height: 80px;
+          max-width: 240px;
+          border-radius: 8px;
+          object-fit: contain;
+        }
+      }
+    }
+    
+    /* Container for profile info */
+    .profile-content {
+      width: 100%;
+      padding: 20px;
+      background-color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border-top: 2px solid #ddd; /* Adding subtle border */
     }
     
     .image-wrapper {
-      width: 180px; /* Proportionally increased from 150px */
-      height: 180px; /* Proportionally increased from 150px */
+      width: 140px;
+      height: 140px;
       border-radius: 50%;
       overflow: hidden;
       margin-bottom: 1.5rem;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      border: 4px solid white;
+      margin-top: -20px;
+      z-index: 1;
       
       img {
         width: 100%;
@@ -260,85 +325,85 @@ export const PreviewContainer = styled.div`
     }
     
     h3 {
-      font-size: 1.8rem; /* Slightly increased from 1.5rem */
+      font-size: 1.8rem;
       font-weight: 600;
       margin: 0 0 0.25rem;
       color: #333;
     }
     
     h4 {
-      font-size: 1.3rem; /* Slightly increased from 1.1rem */
+      font-size: 1.3rem;
       font-weight: 500;
-      margin: 0 0 1rem;
+      margin: 0 0 0.5rem;
       color: #555;
     }
     
-    .bio-container {
-      margin: 1.5rem 0;
-      padding: 1rem 1.5rem; /* Horizontal padding increased */
-      background-color: #f9f9f9;
-      border-radius: 12px;
-      width: 100%;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-      
-      .bio {
-        font-size: 1rem; /* Slightly increased from 0.9rem */
-        line-height: 1.6;
-        color: #444;
-        text-align: left;
-        margin: 0;
-        font-weight: 400;
-      }
-    }
-    
-    .profile-url {
-      margin-top: auto;
-      padding-top: 1.5rem;
-      font-size: 1rem; /* Slightly increased from 0.9rem */
+    .bio-text {
+      font-size: 0.9rem;
+      line-height: 1.4;
       color: #666;
+      margin: 0.5rem 0 1.5rem;
+      max-width: 90%;
+    }
+    
+    /* Contact buttons */
+    .contact-buttons {
       width: 100%;
-      border-top: 1px solid #eee;
-      padding-bottom: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 1rem;
       
-      span {
-        font-family: monospace;
+      .contact-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px;
+        background-color: #f1f1f1;
+        color: #333;
+        border-radius: 30px;
+        font-size: 1rem;
+        font-weight: 500;
+        margin: 0 10px;
+        width: calc(100% - 20px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border: 1px solid #ddd; /* Adding border to buttons */
+        
+        svg {
+          margin-right: 8px;
+        }
       }
     }
     
-    @media (max-width: 850px) {
-      width: 380px; /* Allow some width reduction before column layout */
+    /* Kinvo branding at bottom */
+    .kinvo-branding {
+      width: 100%;
+      padding: 18px 0;
+      background-color: #aa9f94; /* Changed to taupe color */
+      border-top: 2px solid #8c7e73; /* Darker taupe border */
+      margin-top: 15px;
       
-      .image-wrapper {
-        width: 160px;
-        height: 160px;
+      .brand-text {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: white;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      
+      .profile-url {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.9);
+        margin-top: 6px;
+        
+        span {
+          font-family: monospace;
+          font-weight: 600;
+          background-color: rgba(255, 255, 255, 0.15);
+          padding: 2px 6px;
+          border-radius: 4px;
+        }
       }
     }
-    
-    @media (max-width: 768px) {
-      width: 420px; /* Return to full width in column layout */
-      
-      .image-wrapper {
-        width: 180px;
-        height: 180px;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      width: 100%; /* Full width on very small screens */
-      padding: 1.5rem;
-      
-      .image-wrapper {
-        width: 140px;
-        height: 140px;
-      }
-    }
-  }
-  
-  .app-name {
-    margin-top: 1rem;
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #333;
-    text-align: center;
   }
 `;

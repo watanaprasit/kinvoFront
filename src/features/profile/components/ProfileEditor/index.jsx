@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, memo } from 'react';
 import { useAuth } from '../../../auth/context/AuthContext';
 import { ProfileService } from '../../services/profileServices';
-import { StyledProfileEditor, PreviewContainer, EditorContainer, SlugLinkContainer } from './styles';
+import { StyledProfileEditor, PreviewContainer, EditorContainer } from './styles';
 
 const DEFAULT_AVATAR = 'https://api.dicebear.com/6.x/personas/svg?seed=dude';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; 
@@ -461,14 +461,7 @@ const ProfileEditor = () => {
   return (
     <StyledProfileEditor>
       <EditorContainer>
-        {/* New slug link container at the top of the editor */}
-        <SlugLinkContainer>
-          <div className="slug-message">Your Kinvo is Live:</div>
-          <a href={`https://kinvo.com/${previewData.slug}`} target="_blank" rel="noopener noreferrer" className="slug-link">
-            <span className="domain">kinvo.com/</span><span className="slug-value">{previewData.slug || 'your-profile'}</span>
-          </a>
-        </SlugLinkContainer>
-
+        
         {(authError || submitError) && (
           <div className="error-message">
             {authError || submitError}
@@ -476,7 +469,6 @@ const ProfileEditor = () => {
         )}
         
         <form onSubmit={handleSubmit}>
-          {/* Company Logo Upload - Now placed ABOVE profile photo */}
           <div className="photo-upload company-logo-upload">
             <div className="image-container">
               <CompanyLogo 
@@ -588,38 +580,58 @@ const ProfileEditor = () => {
 
       <PreviewContainer>
         <div className="preview-card">
-          {/* Display company logo in preview - Now above profile image */}
-          {(savedCompanyLogoUrl || companyLogoPreviewUrl || userProfile?.company_logo_url) && (
-            <div className="company-logo-container">
-              <CompanyLogo 
-                previewUrl={companyLogoPreviewUrl}
-                userProfile={userProfile}
-                savedPreviewUrl={savedCompanyLogoUrl}
-                cleanImageUrl={cleanImageUrl}
-              />
-            </div>
-          )}
-          
-          {/* Profile Image - Now below company logo */}
-          <ProfileImage 
-            isPreview={true}
-            previewUrl={previewUrl}
-            userProfile={userProfile}
-            savedPreviewUrl={savedPreviewUrl}
-            cleanImageUrl={cleanImageUrl}
-          />
-          
-          <h3>{previewData.display_name || 'Display Name'}</h3>
-          {previewData.title && <h4>{previewData.title}</h4>}
-          
-          {previewData.bio && <div className="bio-container">
-            <p className="bio">{previewData.bio}</p>
-          </div>}
-          
-          <div className="profile-url">
-            <span>kinvo.com/{previewData.slug || 'profile-slug'}</span>
+          {/* Company Logo Area with background color */}
+          <div className="company-logo-container" style={{ backgroundColor: '#4a90e2' }}>
+            <CompanyLogo 
+              previewUrl={companyLogoPreviewUrl}
+              userProfile={userProfile}
+              savedPreviewUrl={savedCompanyLogoUrl}
+              cleanImageUrl={cleanImageUrl}
+            />
+            {!companyLogoPreviewUrl && !userProfile?.company_logo_url && (
+              <div className="no-logo-placeholder">No company logo</div>
+            )}
           </div>
-          <div className="app-name">Kinvo</div>
+          
+          {/* Profile Content Section */}
+          <div className="profile-content">
+            {/* Profile Image */}
+            <ProfileImage 
+              isPreview={true}
+              previewUrl={previewUrl}
+              userProfile={userProfile}
+              savedPreviewUrl={savedPreviewUrl}
+              cleanImageUrl={cleanImageUrl}
+            />
+            
+            <h3>{previewData.display_name || 'Display Name'}</h3>
+            {previewData.title && <h4>{previewData.title}</h4>}
+            
+            {previewData.bio && 
+              <p className="bio-text">{previewData.bio}</p>
+            }
+            
+            {/* Contact Buttons Section */}
+            <div className="contact-buttons">
+              <div className="contact-button">
+                <span>Email</span>
+              </div>
+              <div className="contact-button">
+                <span>Phone</span>
+              </div>
+              <div className="contact-button">
+                <span>Website</span>
+              </div>
+            </div>
+            
+            {/* Kinvo Branding Section - Now INSIDE the phone screen */}
+            <div className="kinvo-branding">
+              <div className="brand-text">Kinvo</div>
+              <div className="profile-url">
+                <span>kinvo.com/{previewData.slug || 'profile-slug'}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </PreviewContainer>
     </StyledProfileEditor>
