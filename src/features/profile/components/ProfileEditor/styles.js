@@ -12,6 +12,39 @@ export const StyledProfileEditor = styled.div`
   @media (max-width: 768px) {
     flex-direction: column;
   }
+  /* Add these to your existing StyledProfileEditor styles */
+
+  .section-divider {
+    margin: 30px 0 20px;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 15px;
+  }
+
+  .section-divider h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
+  }
+
+  /* Update contact buttons to show active state when data is present */
+  .contact-buttons .contact-button {
+    padding: 8px 16px;
+    background-color: #f5f5f5;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.2s ease;
+  }
+
+  .contact-buttons .contact-button:hover {
+    background-color: #eaeaea;
+    cursor: pointer;
+  }
 `;
 
 export const ErrorToast = styled.div`

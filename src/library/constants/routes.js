@@ -15,6 +15,7 @@ export const API_ROUTES = {
         CHECK_SLUG: (slug) => `${BASE_URL}/api/v1/users/check-slug/${slug}`,
         PROFILE_BY_USER_ID: (userId) => `${BASE_URL}/api/v1/users/${userId}/profile`,
         PROFILE_UPDATE: `${BASE_URL}/api/v1/users/me/profile`,
+        CONTACT_INFO_UPDATE: `${BASE_URL}/api/v1/users/me/contact-info`,
     }
 };
 

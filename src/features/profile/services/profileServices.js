@@ -340,6 +340,62 @@ export const ProfileService = {
         }
     },
 
+    // New method for updating contact info using the dedicated endpoint
+    async updateContactInfo(contactData) {
+        const requestId = `contact_update_${Date.now()}`;
+        
+        if (this._updateInProgress) {
+            return Promise.reject(new Error('Another update is in progress'));
+        }
+        
+        this._updateInProgress = requestId;
+        
+        try {
+            const formData = new FormData();
+            
+            // Add email and website as separate fields
+            if (contactData.email !== undefined) {
+                formData.append('email', contactData.email);
+            }
+            
+            if (contactData.website !== undefined) {
+                formData.append('website', contactData.website);
+            }
+            
+            // Add the contact JSON object if provided
+            if (contactData.contact !== undefined) {
+                formData.append('contact', JSON.stringify(contactData.contact));
+            }
+            
+            const response = await fetch(
+                API_ROUTES.USERS.CONTACT_INFO_UPDATE,
+                {
+                    method: 'PUT',
+                    headers: this.getAuthHeaders(null),
+                    credentials: 'include',
+                    body: formData
+                }
+            );
+            
+            const responseText = await response.text();
+            
+            if (!response.ok) {
+                throw new Error(`Failed to update contact info (${response.status}): ${responseText}`);
+            }
+
+            try {
+                const jsonData = JSON.parse(responseText);
+                return jsonData;
+            } catch (e) {
+                throw new Error(`Invalid JSON response: ${responseText}`);
+            }
+        } finally {
+            if (this._updateInProgress === requestId) {
+                this._updateInProgress = null;
+            }
+        }
+    },
+
     async checkSlugAvailability(slug) {
         if (!slug) {
             return { available: false };

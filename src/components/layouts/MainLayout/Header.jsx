@@ -1,6 +1,6 @@
 import { useState } from "react";
+import { Link } from 'react-router-dom';
 import Container from "../../common/Container/Container";
-import Button from "../../common/Button/index";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -17,7 +17,9 @@ const Header = () => {
       <Container>
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <a href="#" className="font-bold text-xl">Kinvo</a>
+            <Link to="/" className="font-bold text-xl hover:text-green-500 transition duration-200">
+              Kinvo
+            </Link>
             <nav className="hidden md:flex ml-10 space-x-8">
               {navItems.map((item) => (
                 <a 
@@ -32,10 +34,18 @@ const Header = () => {
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
-            <a href="#" className="text-gray-600 hover:text-gray-900 font-medium">
-              Log in
-            </a>
-            <Button>Sign up free</Button>
+            <Link 
+              to="/auth/signin" 
+              className="text-gray-600 hover:text-gray-900 font-medium"
+            >
+              Sign In
+            </Link>
+            <Link
+              to="/auth/register"
+              className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-3 rounded-lg transition duration-200"
+            >
+              Register
+            </Link>
           </div>
 
           <button 
@@ -70,10 +80,18 @@ const Header = () => {
                   {item.name}
                 </a>
               ))}
-              <a href="#" className="text-gray-600 hover:text-gray-900 font-medium">
-                Log in
-              </a>
-              <Button>Sign up free</Button>
+              <Link 
+                to="/auth/signin" 
+                className="text-gray-600 hover:text-gray-900 font-medium"
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/auth/register"
+                className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-3 rounded-lg transition duration-200 inline-block text-center"
+              >
+                Register
+              </Link>
             </nav>
           </div>
         )}
