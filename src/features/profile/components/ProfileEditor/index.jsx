@@ -608,260 +608,275 @@ const ProfileEditor = () => {
         </ErrorToast>
       )}
       
-      <EditorContainer>
-        {/* Slug Link Container now inside the editor component */}
-        {formData.slug && (
-          <SlugLinkContainer>
-            <div className="slug-message">Your Kinvo is Live:</div>
-            <a 
-              href={`https://kinvo.com/${formData.slug}`} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="slug-link"
-            >
-              <span className="domain">kinvo.com/</span>
-              <span className="slug-value">{formData.slug}</span>
-            </a>
-          </SlugLinkContainer>
-        )}
-        
-        <form onSubmit={handleSubmit}>
-            <div className="photo-upload company-logo-upload">
+      {/* Moved slug link container outside the editor component */}
+      {formData.slug && (
+        <SlugLinkContainer className="standalone-slug-link">
+          <div className="slug-message">Your Kinvo is Live:</div>
+          <a 
+            href={`https://kinvo.com/${formData.slug}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="slug-link"
+          >
+            <span className="domain">kinvo.com/</span>
+            <span className="slug-value">{formData.slug}</span>
+          </a>
+        </SlugLinkContainer>
+      )}
+      
+      <div className="editor-preview-container">
+        <EditorContainer>
+          <form onSubmit={handleSubmit}>
+              <div className="photo-upload company-logo-upload">
+                {/* Label moved to the top */}
+                <label htmlFor="company-logo-upload">Company Branding</label>
+                <div className="image-container">
+                  <CompanyLogo 
+                    previewUrl={companyLogoPreviewUrl}
+                    userProfile={userProfile}
+                    savedPreviewUrl={savedCompanyLogoUrl}
+                    cleanImageUrl={cleanImageUrl}
+                  />
+                  {!companyLogoPreviewUrl && !userProfile?.company_logo_url && (
+                    <div className="no-logo-placeholder">No company logo</div>
+                  )}
+                  {/* Added pencil icon with attribution */}
+                  <div 
+                    className="edit-icon" 
+                    onClick={() => handlePencilClick(companyLogoInputRef)}
+                    title="Edit Image (Icon by alkhalifi design - Flaticon)"
+                  >
+                    {/* SVG pencil icon */}
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                      <path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712zM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 00-1.32 2.214l-.8 2.685a.75.75 0 00.933.933l2.685-.8a5.25 5.25 0 002.214-1.32l8.4-8.4z" />
+                      <path d="M5.25 5.25a3 3 0 00-3 3v10.5a3 3 0 003 3h10.5a3 3 0 003-3V13.5a.75.75 0 00-1.5 0v5.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5V8.25a1.5 1.5 0 011.5-1.5h5.25a.75.75 0 000-1.5H5.25z" />
+                    </svg>
+                  </div>
+                </div>
+                <input 
+                  id="company-logo-upload"
+                  type="file" 
+                  accept={VALID_TYPES.join(',')}
+                  onChange={handleCompanyLogoChange}
+                  aria-label="Upload company logo"
+                  ref={companyLogoInputRef}
+                  style={{ display: 'none' }} // Hide the input
+                />
+            </div>
+
+            {/* Profile Photo Upload - Now below company logo */}
+            <div className="photo-upload">
               {/* Label moved to the top */}
-              <label htmlFor="company-logo-upload">Company Branding</label>
+              <label htmlFor="photo-upload">Profile Picture</label>
               <div className="image-container">
-                <CompanyLogo 
-                  previewUrl={companyLogoPreviewUrl}
+                {isImageLoading && <div className="loading-spinner">Loading...</div>}
+                <ProfileImage 
+                  isPreview={false}
+                  previewUrl={previewUrl}
                   userProfile={userProfile}
-                  savedPreviewUrl={savedCompanyLogoUrl}
+                  savedPreviewUrl={savedPreviewUrl}
                   cleanImageUrl={cleanImageUrl}
                 />
-                {!companyLogoPreviewUrl && !userProfile?.company_logo_url && (
-                  <div className="no-logo-placeholder">No company logo</div>
-                )}
-                {/* Removed pencil icon, keeping the click functionality */}
+                {/* Added pencil icon with attribution */}
                 <div 
                   className="edit-icon" 
-                  onClick={() => handlePencilClick(companyLogoInputRef)}
+                  onClick={() => handlePencilClick(photoInputRef)}
+                  title="Edit Image (Icon by alkhalifi design - Flaticon)"
                 >
+                  {/* SVG pencil icon */}
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                    <path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712zM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 00-1.32 2.214l-.8 2.685a.75.75 0 00.933.933l2.685-.8a5.25 5.25 0 002.214-1.32l8.4-8.4z" />
+                    <path d="M5.25 5.25a3 3 0 00-3 3v10.5a3 3 0 003 3h10.5a3 3 0 003-3V13.5a.75.75 0 00-1.5 0v5.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5V8.25a1.5 1.5 0 011.5-1.5h5.25a.75.75 0 000-1.5H5.25z" />
+                  </svg>
                 </div>
               </div>
               <input 
-                id="company-logo-upload"
+                id="photo-upload"
                 type="file" 
                 accept={VALID_TYPES.join(',')}
-                onChange={handleCompanyLogoChange}
-                aria-label="Upload company logo"
-                ref={companyLogoInputRef}
+                onChange={handlePhotoChange}
+                aria-label="Upload profile photo"
+                ref={photoInputRef}
                 style={{ display: 'none' }} // Hide the input
               />
-           </div>
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="display_name">Display Name</label>
+              <input
+                id="display_name"
+                type="text"
+                name="display_name"
+                value={formData.display_name}
+                onChange={handleInputChange}
+                placeholder="Your name as shown on your profile"
+                required
+              />
+            </div>
 
-          {/* Profile Photo Upload - Now below company logo */}
-          <div className="photo-upload">
-            {/* Label moved to the top */}
-            <label htmlFor="photo-upload">Profile Picture</label>
-            <div className="image-container">
-              {isImageLoading && <div className="loading-spinner">Loading...</div>}
+            <div className="form-group">
+              <label htmlFor="slug">Profile Name</label>
+              <input
+                id="slug"
+                type="text"
+                name="slug"
+                value={formData.slug}
+                onChange={handleInputChange}
+                placeholder="Choose a unique profile name (letters, numbers, hyphens only)"
+                required
+              />
+              {!slugAvailable && formData.slug && (
+                <p className="text-red-500">
+                  This profile name is already being used by someone else. Please choose another one.
+                </p>
+              )}
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="title">Professional Title</label>
+              <input
+                id="title"
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                placeholder="Your job title or professional role"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="bio">Bio</label>
+              <textarea
+                id="bio"
+                name="bio"
+                value={formData.bio}
+                onChange={handleInputChange}
+                placeholder="Tell visitors about yourself, your experience, and what you do"
+                rows="6"
+              />
+            </div>
+
+            {/* Add after the bio field */}
+            <div className="form-group">
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="Your contact email"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="website">Website</label>
+              <input
+                id="website"
+                type="url"
+                name="website"
+                value={formData.website}
+                onChange={handleInputChange}
+                placeholder="Your website or portfolio (https://...)"
+              />
+            </div>
+
+            {/* Optional: Add phone number field using the contact object */}
+            <div className="form-group">
+              <label htmlFor="phone">Phone Number</label>
+              <input
+                id="phone"
+                type="tel"
+                name="phone"
+                value={formData.contact?.phone || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({
+                    ...prev,
+                    contact: {
+                      ...prev.contact,
+                      phone: value
+                    }
+                  }));
+                }}
+                placeholder="Your phone number"
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={isSubmitting || !slugAvailable || !formData.slug}
+              className={isSubmitting || !slugAvailable || !formData.slug ? 'disabled' : ''}
+            >
+              {isSubmitting ? 'Saving Changes...' : 'Save Changes'}
+            </button>
+          </form>
+        </EditorContainer>
+      
+
+        <PreviewContainer>
+          <div className="preview-card">
+            {/* Company Logo Area with background color */}
+            <div className="company-logo-container">
+              <CompanyLogo 
+                previewUrl={companyLogoPreviewUrl}
+                userProfile={userProfile}
+                savedPreviewUrl={savedCompanyLogoUrl}
+                cleanImageUrl={cleanImageUrl}
+              />
+              {!companyLogoPreviewUrl && !userProfile?.company_logo_url && (
+                <div className="no-logo-placeholder">No company logo</div>
+              )}
+            </div>
+            
+            {/* Profile Content Section */}
+            <div className="profile-content">
+              {/* Profile Image */}
               <ProfileImage 
-                isPreview={false}
+                isPreview={true}
                 previewUrl={previewUrl}
                 userProfile={userProfile}
                 savedPreviewUrl={savedPreviewUrl}
                 cleanImageUrl={cleanImageUrl}
               />
-              {/* Removed pencil icon, keeping the click functionality */}
-              <div 
-                className="edit-icon" 
-                onClick={() => handlePencilClick(photoInputRef)}
-              >
+              
+              <h3>{previewData.display_name || 'Display Name'}</h3>
+              {previewData.title && <h4>{previewData.title}</h4>}
+              
+              {previewData.bio && 
+                <p className="bio-text">{previewData.bio}</p>
+              }
+              
+              {/* Contact Buttons Section */}
+              <div className="contact-buttons">
+                {previewData.email && (
+                  <div className="contact-button">
+                    <span>Email</span>
+                  </div>
+                )}
+                {previewData.contact?.phone && (
+                  <div className="contact-button">
+                    <span>Phone</span>
+                  </div>
+                )}
+                {previewData.website && (
+                  <div className="contact-button">
+                    <span>Website</span>
+                  </div>
+                )}
               </div>
-            </div>
-            <input 
-              id="photo-upload"
-              type="file" 
-              accept={VALID_TYPES.join(',')}
-              onChange={handlePhotoChange}
-              aria-label="Upload profile photo"
-              ref={photoInputRef}
-              style={{ display: 'none' }} // Hide the input
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="display_name">Display Name</label>
-            <input
-              id="display_name"
-              type="text"
-              name="display_name"
-              value={formData.display_name}
-              onChange={handleInputChange}
-              placeholder="Your name as shown on your profile"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="slug">Profile Name</label>
-            <input
-              id="slug"
-              type="text"
-              name="slug"
-              value={formData.slug}
-              onChange={handleInputChange}
-              placeholder="Choose a unique profile name (letters, numbers, hyphens only)"
-              required
-            />
-            {!slugAvailable && formData.slug && (
-              <p className="text-red-500">
-                This profile name is already being used by someone else. Please choose another one.
-              </p>
-            )}
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="title">Professional Title</label>
-            <input
-              id="title"
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              placeholder="Your job title or professional role"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="bio">Bio</label>
-            <textarea
-              id="bio"
-              name="bio"
-              value={formData.bio}
-              onChange={handleInputChange}
-              placeholder="Tell visitors about yourself, your experience, and what you do"
-              rows="6"
-            />
-          </div>
-
-          {/* Add after the bio field */}
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              placeholder="Your contact email"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="website">Website</label>
-            <input
-              id="website"
-              type="url"
-              name="website"
-              value={formData.website}
-              onChange={handleInputChange}
-              placeholder="Your website or portfolio (https://...)"
-            />
-          </div>
-
-          {/* Optional: Add phone number field using the contact object */}
-          <div className="form-group">
-            <label htmlFor="phone">Phone Number</label>
-            <input
-              id="phone"
-              type="tel"
-              name="phone"
-              value={formData.contact?.phone || ''}
-              onChange={(e) => {
-                const value = e.target.value;
-                setFormData(prev => ({
-                  ...prev,
-                  contact: {
-                    ...prev.contact,
-                    phone: value
-                  }
-                }));
-              }}
-              placeholder="Your phone number"
-            />
-          </div>
-
-          <button 
-            type="submit" 
-            disabled={isSubmitting || !slugAvailable || !formData.slug}
-            className={isSubmitting || !slugAvailable || !formData.slug ? 'disabled' : ''}
-          >
-            {isSubmitting ? 'Saving Changes...' : 'Save Changes'}
-          </button>
-        </form>
-      </EditorContainer>
-
-      <PreviewContainer>
-        <div className="preview-card">
-          {/* Company Logo Area with background color */}
-          <div className="company-logo-container">
-            <CompanyLogo 
-              previewUrl={companyLogoPreviewUrl}
-              userProfile={userProfile}
-              savedPreviewUrl={savedCompanyLogoUrl}
-              cleanImageUrl={cleanImageUrl}
-            />
-            {!companyLogoPreviewUrl && !userProfile?.company_logo_url && (
-              <div className="no-logo-placeholder">No company logo</div>
-            )}
-          </div>
-          
-          {/* Profile Content Section */}
-          <div className="profile-content">
-            {/* Profile Image */}
-            <ProfileImage 
-              isPreview={true}
-              previewUrl={previewUrl}
-              userProfile={userProfile}
-              savedPreviewUrl={savedPreviewUrl}
-              cleanImageUrl={cleanImageUrl}
-            />
-            
-            <h3>{previewData.display_name || 'Display Name'}</h3>
-            {previewData.title && <h4>{previewData.title}</h4>}
-            
-            {previewData.bio && 
-              <p className="bio-text">{previewData.bio}</p>
-            }
-            
-            {/* Contact Buttons Section */}
-            <div className="contact-buttons">
-              {previewData.email && (
-                <div className="contact-button">
-                  <span>Email</span>
+              
+              {/* Kinvo Branding Section - Now INSIDE the phone screen */}
+              <div className="kinvo-branding">
+                <div className="brand-text">Kinvo</div>
+                <div className="profile-url">
+                  <span>kinvo.com/{previewData.slug || 'profile-name'}</span>
                 </div>
-              )}
-              {previewData.contact?.phone && (
-                <div className="contact-button">
-                  <span>Phone</span>
-                </div>
-              )}
-              {previewData.website && (
-                <div className="contact-button">
-                  <span>Website</span>
-                </div>
-              )}
-            </div>
-            
-            {/* Kinvo Branding Section - Now INSIDE the phone screen */}
-            <div className="kinvo-branding">
-              <div className="brand-text">Kinvo</div>
-              <div className="profile-url">
-                <span>kinvo.com/{previewData.slug || 'profile-name'}</span>
               </div>
             </div>
           </div>
-        </div>
-      </PreviewContainer>
+        </PreviewContainer>
+      </div>
     </StyledProfileEditor>
   );
 };

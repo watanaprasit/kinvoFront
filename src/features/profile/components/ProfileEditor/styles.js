@@ -2,15 +2,22 @@ import styled from 'styled-components';
 
 export const StyledProfileEditor = styled.div`
   display: flex;
-  flex-direction: row;
+  flex-direction: column; /* Keep this for wrapping the slug link above the layout */
   gap: 2rem;
   padding: 1.5rem;
   max-width: 1200px;
   margin: 0 auto;
   position: relative; /* Added for positioning the ErrorToast */
   
-  @media (max-width: 768px) {
-    flex-direction: column;
+  /* THIS IS THE KEY CHANGE - we need to style this for a row layout */
+  .editor-preview-container {
+    display: flex;
+    flex-direction: row; /* This makes the editor and preview side by side */
+    gap: 2rem;
+    
+    @media (max-width: 768px) {
+      flex-direction: column; /* Stack vertically on mobile */
+    }
   }
   /* Add these to your existing StyledProfileEditor styles */
 
@@ -132,10 +139,12 @@ export const SlugLinkContainer = styled.div`
   background-color: #c0b8ae; /* Taupe color for slug area */
   padding: 1rem;
   border-radius: 6px;
-  margin-bottom: 1.5rem;
+  margin: 1.5rem auto; /* Changed from margin-bottom to center it */
   border-left: 3px solid #8c7e73; /* Darker taupe border */
   font-size: 1rem;
   border: 2px solid #8c7e73; /* Complete border around slug container */
+  max-width: 600px; /* Added max-width for better appearance */
+  width: calc(100% - 3rem); /* Account for padding */
   
   .slug-message {
     font-weight: 600;
@@ -293,8 +302,11 @@ export const EditorContainer = styled.div`
           background-color: #f0f0f0;
         }
         
-        span {
-          font-size: 16px;
+        /* Remove span styling and let SVG handle the icon */
+        svg {
+          width: 16px;
+          height: 16px;
+          color: #555;
         }
       }
     }
@@ -342,30 +354,34 @@ export const EditorContainer = styled.div`
         font-style: italic;
       }
       
+      // Update the edit-icon in both photo-upload and company-logo-upload classes
       .edit-icon {
         position: absolute;
         bottom: 5px;
         right: 5px;
-        background-color: white;
+        background-color: #fff;
         border-radius: 50%;
-        width: 20px;
-        height: 20px;
+        width: 28px;
+        height: 28px;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         cursor: pointer;
-        border: 1px solid #e5e5e5;
+        border: 1px solid #ddd;
         z-index: 2;
         
         &:hover {
-          background-color: #f5f5f5;
-          border-color: #ccc;
-          
-          span {
-            color: #333;
-          }
+          background-color: #f0f0f0;
         }
+        
+        /* Remove span styling and let SVG handle the icon */
+        svg {
+          width: 16px;
+          height: 16px;
+          color: #555;
+        }
+      }
         
         span {
           font-size: 12px;
@@ -406,8 +422,9 @@ export const PreviewContainer = styled.div`
   flex-direction: column;
   position: sticky;
   top: 20px;
-  align-self: flex-start;
-  min-width: 420px;
+  align-self: center; /* Changed from flex-start to center */
+  justify-content: center; /* Added to center vertically */
+  min-width: 336px; /* Reduced from 420px by 20% */
   
   @media (max-width: 1100px) {
     ${EditorContainer} {
@@ -422,11 +439,12 @@ export const PreviewContainer = styled.div`
   }
   
   @media (max-width: 850px) {
-    min-width: 380px;
+    min-width: 304px;
   }
   
   @media (max-width: 768px) {
     min-width: unset;
+    align-self: center; /* Ensure it stays centered on mobile */
   }
   
   .preview-card {
@@ -440,7 +458,7 @@ export const PreviewContainer = styled.div`
     text-align: center;
     position: relative;
     border: 10px solid #222;
-    width: 420px;
+    width: 336px; /* Reduced from 420px by 20% */
     margin: 0 auto;
     overflow: hidden;
     
@@ -474,7 +492,8 @@ export const PreviewContainer = styled.div`
         border-radius: 6px;
         border: 2px solid #8c7e73;
         border-left: 3px solid #8c7e73;
-        max-width: fit-content;
+        max-width: 100%; /* Changed from fit-content to allow more space */
+        width: auto; /* Added to prevent container from constraining width */
       }
       
       .no-logo-placeholder {
@@ -501,7 +520,8 @@ export const PreviewContainer = styled.div`
       
       img {
         max-height: 80px;
-        max-width: 240px;
+        max-width: 100%; /* Changed from 240px to prevent squishing */
+        width: auto; /* Added to maintain aspect ratio */
         border-radius: 8px;
         object-fit: contain;
       }
