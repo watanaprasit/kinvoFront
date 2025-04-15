@@ -16,6 +16,9 @@ export const API_ROUTES = {
         PROFILE_BY_USER_ID: (userId) => `${BASE_URL}/api/v1/users/${userId}/profile`,
         PROFILE_UPDATE: `${BASE_URL}/api/v1/users/me/profile`,
         CONTACT_INFO_UPDATE: `${BASE_URL}/api/v1/users/me/contact-info`,
+    },
+    PUBLIC: {
+        PROFILE_BY_SLUG: (slug) => `${BASE_URL}/${slug}`
     }
 };
 
@@ -25,8 +28,20 @@ export const APP_ROUTES = {
     REGISTER: '/signup',
     SETTINGS: '/settings',
     PROFILE: '/profile/:slug',
+    PUBLIC_PROFILE: '/:slug',  // Added for public profile access
     DASHBOARD: '/dashboard',
     NOT_FOUND: '*'
 };
 
-
+// Helper function to determine if a path is a reserved system route
+export const isReservedRoute = (slug) => {
+    const reservedPaths = [
+        'login', 
+        'signup', 
+        'settings', 
+        'dashboard', 
+        'profile',
+        'api'
+    ];
+    return reservedPaths.includes(slug);
+};

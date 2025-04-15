@@ -47,6 +47,57 @@ export const ProfileService = {
         }
     },
 
+    // New method for fetching a public profile by slug - no auth required
+    async getProfileBySlug(slug) {
+        if (!slug) {
+            throw new Error('Slug is required');
+        }
+    
+        try {
+            // Make sure this points to your actual API endpoint, not just the base URL
+            const response = await fetch(
+                `${API_ROUTES.BASE_URL}/api/v1/users/by-slug/${slug}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+    
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error('Profile not found');
+                }
+                const errorData = await response.text();
+                throw new Error(`Failed to fetch profile (${response.status}): ${errorData}`);
+            }
+    
+            // Process response
+            const responseText = await response.text();
+            
+            try {
+                const data = JSON.parse(responseText);
+                
+                // Format URLs with cache busting
+                if (data.photo_url) {
+                    data.photo_url = this.formatPhotoUrl(data.photo_url);
+                }
+                
+                if (data.company_logo_url) {
+                    data.company_logo_url = this.formatPhotoUrl(data.company_logo_url);
+                }
+                
+                return data;
+            } catch (e) {
+                throw new Error(`Invalid JSON response: ${responseText}`);
+            }
+        } catch (error) {
+            console.error('Error fetching profile by slug:', error);
+            throw error;
+        }
+    },
+
     async getUserByEmail(email) {
         if (!email) {
             throw new Error('Email is required');
@@ -422,3 +473,17 @@ export const ProfileService = {
         return await response.json();
     }
 };
+
+// profileServices.js
+export const getProfileBySlug = async (slug) => {
+    try {
+      const response = await fetch(`/api/v1/profiles/${slug}`);
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching profile by slug:', error);
+      throw error;
+    }
+  };
