@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback, memo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { StyledSlugProfile } from './styles';
-
-// Update the import to use your API service
-// Assuming your profileServices is structured properly
 import { ProfileService } from '../../../features/profile/services/profileServices';
 
 const DEFAULT_AVATAR = 'https://api.dicebear.com/6.x/personas/svg?seed=dude';

@@ -28,8 +28,7 @@ const Hero = () => {
         
         <div className="mt-16 relative">
           <div className="bg-gradient-to-b from-purple-100 to-blue-50 rounded-2xl p-4 md:p-8 shadow-lg">
-            <img 
-              src="/api/placeholder/800/450" 
+            <img  
               alt="Kinvo dashboard preview" 
               className="rounded-lg shadow-md w-full"
             />

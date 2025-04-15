@@ -1,19 +1,35 @@
 import Container from "../../common/Container/Container";
 import SocialIcon from "../../common/SocialIcon/SocialIcon";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   const footerLinks = [
     {
       title: "Product",
-      links: ["Features", "Pricing", "Templates", "Enterprise"]
+      links: [
+        { name: "Features", url: "/features" },
+        { name: "Pricing", url: "/pricing" },
+        { name: "Templates", url: "/templates" },
+        { name: "Enterprise", url: "/enterprise" }
+      ]
     },
     {
       title: "Resources",
-      links: ["Blog", "Help Center", "Support", "API"]
+      links: [
+        { name: "Blog", url: "resources/blog" },
+        { name: "Help Center", url: "resources/help" },
+        { name: "Support", url: "resources/support" },
+        { name: "API", url: "resources/api" }
+      ]
     },
     {
       title: "Company",
-      links: ["About", "Careers", "Privacy", "Terms"]
+      links: [
+        { name: "About", url: "/company/about" },
+        { name: "Careers", url: "/company/careers" },
+        { name: "Privacy", url: "/company/privacy" },
+        { name: "Terms", url: "/company/terms" }
+      ]
     }
   ];
   
@@ -39,9 +55,9 @@ const Footer = () => {
               <ul className="space-y-2">
                 {column.links.map((link, j) => (
                   <li key={j}>
-                    <a href="#" className="text-gray-600 hover:text-gray-900">
-                      {link}
-                    </a>
+                    <Link to={link.url} className="text-gray-600 hover:text-gray-900">
+                      {link.name}
+                    </Link>
                   </li>
                 ))}
               </ul>

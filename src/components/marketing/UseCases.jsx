@@ -65,7 +65,6 @@ const UseCases = () => {
           </div>
           <div className="order-1 md:order-2 bg-white p-6 rounded-2xl shadow-lg">
             <img 
-              src="/api/placeholder/400/600" 
               alt="Kinvo example" 
               className="w-full rounded-lg"
             />

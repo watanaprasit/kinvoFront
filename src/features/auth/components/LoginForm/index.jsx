@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLogin } from '../../hooks/UseLogin';
 import Button from '../../../../components/common/Button/index';
+import { Link } from 'react-router-dom';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -66,7 +67,7 @@ const LoginForm = () => {
   return (
     <form onSubmit={onSubmit} className="max-w-md mx-auto p-6 bg-white shadow-lg rounded-lg">
       <h2 className="text-2xl font-bold text-center mb-6 relative z-10">Welcome Back!</h2>
-      <p className="text-center mt-2">New to Kinvo? <a href="/auth/signup" className="text-blue-500">Create an Account</a></p>
+      <p className="text-center mt-2">New to Kinvo? <Link to="/auth/register" className="text-blue-500">Create an Account</Link></p>
 
       <div className="mt-4">
         <label htmlFor="email" className="block text-gray-700">Email:</label>
@@ -109,7 +110,7 @@ const LoginForm = () => {
       <div id="googleButton" className="mt-3 flex justify-center"></div>
 
       <div className="text-center mt-4 text-sm">
-        By signing in, you agree to our <a href="/terms" className="text-blue-500">Terms of Service</a> and <a href="/privacy" className="text-blue-500">Privacy Policy</a>.
+        By signing in, you agree to our <Link to="/company/terms" className="text-blue-500">Terms of Service</Link> and <Link to="/company/privacy" className="text-blue-500">Privacy Policy</Link>.
       </div>
     </form>
   );

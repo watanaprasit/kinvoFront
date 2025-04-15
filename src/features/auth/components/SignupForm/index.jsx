@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSignup } from '../../hooks/useSignup';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../../../components/common/Button/index';
+import { Link } from 'react-router-dom';
 
 const SignupForm = () => {
   const [email, setEmail] = useState('');
@@ -45,20 +46,9 @@ const SignupForm = () => {
     if (window.google) {
       window.google.accounts.id.initialize({
         client_id: '756781097319-h7bgtos2krue9i7ofu0c8lml2ur2kpc0.apps.googleusercontent.com',
-        // Use the handleGoogleCredential function instead of handleGoogleSignup directly
         callback: handleGoogleCredential,
         auto_select: false,
       });
-
-      window.google.accounts.id.renderButton(
-        document.getElementById('googleSignupButton'),
-        {
-          type: 'standard',
-          theme: 'outline',
-          size: 'large',
-          width: '100%',
-        }
-      );
     }
   };
 
@@ -78,6 +68,12 @@ const SignupForm = () => {
       navigate('/auth/select-slug');
     } else {
       console.error('Google signup failed:', result.error);
+    }
+  };
+
+  const handleCustomGoogleSignup = () => {
+    if (window.google) {
+      window.google.accounts.id.prompt();
     }
   };
 
@@ -119,7 +115,17 @@ const SignupForm = () => {
     <form onSubmit={onSubmit} className="max-w-md mx-auto p-6 bg-white shadow-lg rounded-lg">
       <h2 className="text-2xl font-bold text-center mb-6">Set Up Your Account</h2>
 
-      <div id="googleSignupButton" className="mt-3"></div>
+      {/* Custom Google button that matches login component */}
+      <button
+        type="button"
+        onClick={handleCustomGoogleSignup}
+        className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 py-3 rounded-md hover:bg-gray-50 transition-all mt-4"
+      >
+        <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+          <path fill="#4285F4" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"/>
+        </svg>
+        <span>Sign up with Google</span>
+      </button>
 
       <div className="flex items-center justify-center mt-6">
         <div className="flex-grow border-t border-gray-300"></div>
@@ -171,8 +177,13 @@ const SignupForm = () => {
         {isValidatingEmail ? 'Validating Email...' : isSubmitting ? 'Submitting...' : 'Create Account'}
       </Button>
 
+      {/* Add this new section */}
       <div className="text-center mt-4 text-sm">
-        By signing up, you agree to our <a href="/terms" className="text-blue-500">Terms of Service</a> and <a href="/privacy" className="text-blue-500">Privacy Policy</a>.
+        Already have an account? <Link to="/auth/signin" className="text-blue-500 font-medium">Log in</Link>
+      </div>
+
+      <div className="text-center mt-4 text-sm">
+        By signing in, you agree to our <Link to="/company/terms" className="text-blue-500">Terms of Service</Link> and <Link to="/company/privacy" className="text-blue-500">Privacy Policy</Link>.
       </div>
     </form>
   );
