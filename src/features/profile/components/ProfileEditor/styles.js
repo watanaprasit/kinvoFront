@@ -606,6 +606,13 @@ export const PreviewContainer = styled.div`
         }
       }
     }
+
+    .qr-code-container {
+      display: flex;
+      justify-content: center;
+      margin: 15px 0;
+      padding: 5px;
+    }
     
     /* Kinvo branding at bottom */
     .kinvo-branding {

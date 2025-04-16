@@ -471,7 +471,25 @@ export const ProfileService = {
         }
     
         return await response.json();
-    }
+    },
+
+    // Add to ProfileService
+    async fetchQRCode(baseUrl = 'http://localhost:5173/') {
+        const response = await fetch(
+            `${API_ROUTES.BASE_URL}/user/me/qrcode?base_url=${encodeURIComponent(baseUrl)}`,
+            {
+                method: 'GET',
+                headers: this.getAuthHeaders(),
+                credentials: 'include'
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch QR code (${response.status})`);
+        }
+
+        return await response.json();
+    },
 };
 
 // profileServices.js
@@ -487,3 +505,5 @@ export const getProfileBySlug = async (slug) => {
       throw error;
     }
   };
+
+  

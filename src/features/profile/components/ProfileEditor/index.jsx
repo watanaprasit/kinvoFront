@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { useAuth } from '../../../auth/context/AuthContext';
 import { ProfileService } from '../../services/profileServices';
+import ProfileQRCode from '../../../qrCode/components/ProfileQRCode';
 import { StyledProfileEditor, PreviewContainer, EditorContainer, SlugLinkContainer, ErrorToast } from './styles';
 
 const DEFAULT_AVATAR = 'https://api.dicebear.com/6.x/personas/svg?seed=dude';
@@ -621,6 +622,7 @@ const ProfileEditor = () => {
             <span className="domain">kinvo.com/</span>
             <span className="slug-value">{formData.slug}</span>
           </a>
+
         </SlugLinkContainer>
       )}
       
@@ -865,6 +867,16 @@ const ProfileEditor = () => {
                   </div>
                 )}
               </div>
+
+              {previewData.slug && (
+                <div className="qr-code-container">
+                  <ProfileQRCode 
+                    slug={previewData.slug} 
+                    size={80}
+                    baseUrl={process.env.NODE_ENV === 'development' ? 'http://localhost:5173/' : 'https://kinvo.com/'}
+                  />
+                </div>
+              )}
               
               {/* Kinvo Branding Section - Now INSIDE the phone screen */}
               <div className="kinvo-branding">

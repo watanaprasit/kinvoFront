@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, memo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { StyledSlugProfile } from './styles';
 import { ProfileService } from '../../../features/profile/services/profileServices';
+import ProfileQRCode from '../../../features/qrCode/components/ProfileQRCode';
 
 const DEFAULT_AVATAR = 'https://api.dicebear.com/6.x/personas/svg?seed=dude';
 
@@ -17,19 +18,31 @@ const ProfileImage = memo(({ profileData, cleanImageUrl }) => {
     setRetryCount(0);
     
     const photoUrl = profileData?.profile?.photo_url;
+
     if (!photoUrl) {
       setImgSrc(DEFAULT_AVATAR);
+      setLocalLoading(false);
     } else {
-      setImgSrc(ProfileService.formatPhotoUrl(cleanImageUrl(photoUrl)));
+      const formattedUrl = ProfileService.formatPhotoUrl(cleanImageUrl(photoUrl));
+      setImgSrc(formattedUrl);
     }
   }, [profileData, cleanImageUrl]);
 
   const handleImageError = (e) => {
     if (retryCount < maxRetries) {
-      setTimeout(() => {
-        setImgSrc(ProfileService.formatPhotoUrl(cleanImageUrl(imgSrc)));
-        setRetryCount(prevCount => prevCount + 1);
-      }, 500);
+      // Don't use imgSrc here as it might be the already-failing URL
+      const photoUrl = profileData?.profile?.photo_url;
+      if (photoUrl) {
+        setTimeout(() => {
+          // Add a cache-busting parameter to force reload
+          const newUrl = ProfileService.formatPhotoUrl(cleanImageUrl(photoUrl)) + `?retry=${retryCount}`;
+          setImgSrc(newUrl);
+          setRetryCount(prevCount => prevCount + 1);
+        }, 500);
+      } else {
+        setImgSrc(DEFAULT_AVATAR);
+        setLocalLoading(false);
+      }
     } else {
       setLocalLoading(false);
       e.target.src = DEFAULT_AVATAR;
@@ -259,6 +272,16 @@ const SlugProfile = () => {
                 </a>
               </div>
             )}
+          </div>
+
+          <div className="share-section">
+            <h3>Share this profile</h3>
+            <ProfileQRCode 
+              slug={profileData.slug} 
+              size={100}
+              downloadable={true}
+              baseUrl={process.env.NODE_ENV === 'development' ? 'http://localhost:5173/' : 'https://kinvo.com/'}
+            />
           </div>
           
           {/* Kinvo Branding Section */}
