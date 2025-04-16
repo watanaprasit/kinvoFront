@@ -184,6 +184,34 @@ export const SlugLinkContainer = styled.div`
       margin-bottom: 0.5rem;
     }
   }
+  .slug-link-container {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .copy-button {
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    
+    &:hover {
+      background-color: #e0e0e0;
+    }
+  }
+  
+  .copy-success {
+    color: #4caf50;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+    margin-left: 5px;
+  }
 `;
 
 export const EditorContainer = styled.div`

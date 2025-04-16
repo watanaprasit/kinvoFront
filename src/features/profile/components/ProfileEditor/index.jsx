@@ -337,6 +337,22 @@ const ProfileEditor = () => {
     }
   };
 
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        // Show a temporary success message (we'll add this element)
+        const copySuccess = document.getElementById('copy-success');
+        copySuccess.style.opacity = '1';
+        setTimeout(() => {
+          copySuccess.style.opacity = '0';
+        }, 2000);
+      })
+      .catch(err => {
+        console.error('Failed to copy: ', err);
+        alert('Failed to copy URL to clipboard');
+      });
+  };
+
   // Modified handleInputChange to use a debounced slug validation
   const handleInputChange = useCallback(async (e) => {
     const { name, value } = e.target;
@@ -595,6 +611,7 @@ const ProfileEditor = () => {
   if (isLoading) {
     return <div>Loading your profile...</div>;
   }
+  
 
   return (
     <StyledProfileEditor>
@@ -609,20 +626,27 @@ const ProfileEditor = () => {
         </ErrorToast>
       )}
       
-      {/* Moved slug link container outside the editor component */}
       {formData.slug && (
         <SlugLinkContainer className="standalone-slug-link">
           <div className="slug-message">Your Kinvo is Live:</div>
-          <a 
-            href={`https://kinvo.com/${formData.slug}`} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="slug-link"
-          >
-            <span className="domain">kinvo.com/</span>
-            <span className="slug-value">{formData.slug}</span>
-          </a>
-
+          <div className="slug-link-container">
+            <a 
+              href={`https://kinvo.com/${formData.slug}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="slug-link"
+            >
+              <span className="domain">kinvo.com/</span>
+              <span className="slug-value">{formData.slug}</span>
+            </a>
+            <button 
+              className="copy-button"
+              onClick={() => copyToClipboard(`https://kinvo.com/${formData.slug}`)}
+            >
+              Copy your Kinvo URL
+            </button>
+            <span id="copy-success" className="copy-success">URL copied!</span>
+          </div>
         </SlugLinkContainer>
       )}
       
