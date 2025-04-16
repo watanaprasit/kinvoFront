@@ -19,7 +19,11 @@ export const API_ROUTES = {
     },
     PUBLIC: {
         PROFILE_BY_SLUG: (slug) => `${BASE_URL}/${slug}`
-    }
+    },
+    QR_CODE: {
+        GET: `${BASE_URL}/api/v1/users/me/qrcode`,
+        UPDATE: `${BASE_URL}/api/v1/users/me/qrcode`
+      },
 };
 
 export const APP_ROUTES = {

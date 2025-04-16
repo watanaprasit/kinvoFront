@@ -495,7 +495,7 @@ export const ProfileService = {
 // profileServices.js
 export const getProfileBySlug = async (slug) => {
     try {
-      const response = await fetch(`/api/v1/profiles/${slug}`);
+      const response = await fetch(`//${slug}`);
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }

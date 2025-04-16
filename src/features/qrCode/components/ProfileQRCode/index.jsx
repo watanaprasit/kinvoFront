@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { QRCodeContainer } from './styles';
+import { API_ROUTES } from '../../../../library/constants/routes';
 
 const ProfileQRCode = ({ slug, size = 120, downloadable = true, baseUrl = 'https://kinvo.com/' }) => {
   const [qrCodeImage, setQrCodeImage] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  const API_URL = 'http://127.0.0.1:8000'; // Your FastAPI URL
-
   // Fetch QR code from API using authenticated endpoint
   useEffect(() => {
     if (!slug) return;
@@ -16,14 +15,24 @@ const ProfileQRCode = ({ slug, size = 120, downloadable = true, baseUrl = 'https
     setIsLoading(true);
     setError(null);
     
+    // Use the correct key to get the token
+    const token = localStorage.getItem('access_token');
+    
+    if (!token) {
+      console.error('Authentication token not found');
+      setError('Authentication required. Please login again.');
+      setIsLoading(false);
+      return;
+    }
+    
     // The API expects an authenticated request
-    axios.get(`${API_URL}/me/qrcode`, {
+    axios.get(`${API_ROUTES.QR_CODE.GET}`, {
       params: {
-        base_url: baseUrl // Optional parameter your endpoint accepts
+        base_url: baseUrl 
       },
-      withCredentials: true, // Important for sending authentication cookies
+      withCredentials: true,
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}` // Adjust according to your auth method
+        'Authorization': `Bearer ${token}` // Now using the correct token key
       }
     })
     .then(response => {
@@ -36,7 +45,18 @@ const ProfileQRCode = ({ slug, size = 120, downloadable = true, baseUrl = 'https
     })
     .catch(err => {
       console.error('Failed to fetch QR code:', err);
-      setError('Failed to load QR code');
+      // Better error handling
+      if (err.response) {
+        if (err.response.status === 401) {
+          setError('Your session has expired. Please login again.');
+        } else {
+          setError(`Error ${err.response.status}: ${err.response.data?.detail || 'Failed to load QR code'}`);
+        }
+      } else if (err.request) {
+        setError('No response from server. Please check your connection.');
+      } else {
+        setError('Failed to load QR code');
+      }
       setIsLoading(false);
     });
   }, [slug, baseUrl]);
@@ -70,7 +90,18 @@ const ProfileQRCode = ({ slug, size = 120, downloadable = true, baseUrl = 'https
           <div className="loading-spinner">Loading QR Code...</div>
         </div>
       ) : error ? (
-        <div className="error-message">{error}</div>
+        <div className="error-message">
+          {error}
+          {(error.includes('login') || error.includes('session')) && (
+            <button 
+              className="login-button" 
+              onClick={() => window.location.href = '/login'}
+              style={{ marginTop: '10px', padding: '5px 10px' }}
+            >
+              Login Again
+            </button>
+          )}
+        </div>
       ) : (
         <>
           <img 
@@ -79,15 +110,7 @@ const ProfileQRCode = ({ slug, size = 120, downloadable = true, baseUrl = 'https
             width={size}
             height={size}
           />
-          {downloadable && (
-            <button 
-              className="download-button" 
-              onClick={downloadQRCode}
-              aria-label="Download QR Code"
-            >
-              <span>↓</span> Download
-            </button>
-          )}
+
         </>
       )}
     </QRCodeContainer>

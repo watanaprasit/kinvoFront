@@ -275,7 +275,7 @@ const SlugProfile = () => {
           </div>
 
           <div className="share-section">
-            <h3>Share this profile</h3>
+
             <ProfileQRCode 
               slug={profileData.slug} 
               size={100}
