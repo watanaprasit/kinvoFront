@@ -199,6 +199,7 @@ export const SlugLinkContainer = styled.div`
     font-size: 0.9rem;
     cursor: pointer;
     transition: background-color 0.2s;
+    color: black;
     
     &:hover {
       background-color: #e0e0e0;

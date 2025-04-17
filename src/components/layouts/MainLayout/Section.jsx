@@ -4,7 +4,8 @@ const Section = ({
   children, 
   className = "", 
   background = "white", 
-  spacing = "normal" 
+  spacing = "normal",
+  fullWidth = false
 }) => {
   const bgClasses = {
     white: "bg-white",
@@ -19,8 +20,8 @@ const Section = ({
   };
   
   return (
-    <section className={`${bgClasses[background]} ${spacingClasses[spacing]} ${className}`}>
-      <Container>
+    <section className={`w-full ${bgClasses[background]} ${spacingClasses[spacing]} ${className}`}>
+      <Container fullWidth={fullWidth}>
         {children}
       </Container>
     </section>
