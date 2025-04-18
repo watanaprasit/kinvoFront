@@ -5,6 +5,7 @@ import { useSlugRegistration } from '../../hooks/useSlugRegistration';
 import { useDebounce } from '../../hooks/useDebounce';
 import { CheckCircle } from 'lucide-react';
 import { signupWithGoogle } from '../../services/AuthService';
+import { useAuth } from '../../context/AuthContext';
 
 const SlugRegistration = () => {
   const [slug, setSlug] = useState('');
@@ -12,6 +13,7 @@ const SlugRegistration = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const debouncedSlug = useDebounce(slug, 1000);
+  const { login } = useAuth();
   
   const {
     isChecking,
@@ -79,33 +81,28 @@ const SlugRegistration = () => {
       if (registrationData.googleCredential) {
         // Complete Google signup
         result = await signupWithGoogle(registrationData.googleCredential, slug);
-        console.log("Google signup result:", result); // Add this for debugging
+        console.log("Google signup result:", result);
       } else {
         throw new Error('Email signup is currently unavailable');
       }
   
       if (result?.success) {
+        // Get user data from the result
+        const userData = result.user || {
+          email: registrationData.email,
+          slug: slug,
+          full_name: registrationData.name
+        };
+        
+        // Update AuthContext with the new user data
+        await login(userData);
+        
         // Clear registration data
         sessionStorage.removeItem('registrationData');
         
-        // Check for access token
-        const token = localStorage.getItem('access_token');
-        console.log("Access token exists:", !!token); // Verify token existence
-        
-        if (token) {
-          console.log('Registration successful, redirecting to dashboard');
-          // Try using the full path for navigation
-          navigate('/app/dashboard', { replace: true });
-          
-          // Add a fallback in case navigation doesn't work immediately
-          setTimeout(() => {
-            console.log("Fallback navigation triggered");
-            window.location.href = '/app/dashboard';
-          }, 1000);
-        } else {
-          console.error('Authentication token not found after successful registration');
-          throw new Error('Authentication failed. Please try logging in.');
-        }
+        // Force a page reload to ensure all authentication state is updated
+        console.log('Registration successful, redirecting to dashboard');
+        navigate('/dashboard', { replace: true });
       } else {
         throw new Error(result?.error || 'Failed to complete registration');
       }
