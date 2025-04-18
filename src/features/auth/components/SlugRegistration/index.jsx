@@ -19,7 +19,6 @@ const SlugRegistration = () => {
     checkSlugAvailability,
   } = useSlugRegistration();
 
-
   useEffect(() => {
     // Validate registration data exists
     const regData = sessionStorage.getItem('registrationData');
@@ -67,28 +66,46 @@ const SlugRegistration = () => {
       if (!registrationData) {
         throw new Error('Registration data not found');
       }
-
+  
       // Final availability check
       const isSlugAvailable = await checkSlugAvailability(slug);
       
       if (!isSlugAvailable) {
         throw new Error('This URL is no longer available');
       }
-
+  
       let result;
       
       if (registrationData.googleCredential) {
         // Complete Google signup
         result = await signupWithGoogle(registrationData.googleCredential, slug);
+        console.log("Google signup result:", result); // Add this for debugging
       } else {
-        // Handle regular signup
-        // Add your regular signup completion code here if needed
+        throw new Error('Email signup is currently unavailable');
       }
-
-      if (result?.success && result?.isComplete) {
-        // Clear registration data and redirect
+  
+      if (result?.success) {
+        // Clear registration data
         sessionStorage.removeItem('registrationData');
-        navigate('/dashboard');
+        
+        // Check for access token
+        const token = localStorage.getItem('access_token');
+        console.log("Access token exists:", !!token); // Verify token existence
+        
+        if (token) {
+          console.log('Registration successful, redirecting to dashboard');
+          // Try using the full path for navigation
+          navigate('/app/dashboard', { replace: true });
+          
+          // Add a fallback in case navigation doesn't work immediately
+          setTimeout(() => {
+            console.log("Fallback navigation triggered");
+            window.location.href = '/app/dashboard';
+          }, 1000);
+        } else {
+          console.error('Authentication token not found after successful registration');
+          throw new Error('Authentication failed. Please try logging in.');
+        }
       } else {
         throw new Error(result?.error || 'Failed to complete registration');
       }

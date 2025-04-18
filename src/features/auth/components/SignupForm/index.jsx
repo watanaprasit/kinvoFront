@@ -24,18 +24,25 @@ const SignupForm = () => {
 
   useEffect(() => {
     const loadGoogleScript = () => {
+      // Check if script already exists to prevent duplicate loading
+      if (document.querySelector('script[src="https://accounts.google.com/gsi/client"]')) {
+        initializeGoogleSignUp();
+        return;
+      }
+      
       const script = document.createElement('script');
       script.src = 'https://accounts.google.com/gsi/client';
       script.async = true;
       script.defer = true;
+      script.onload = initializeGoogleSignUp;
       document.body.appendChild(script);
 
-      script.onload = () => {
-        initializeGoogleSignUp();
-      };
-
       return () => {
-        document.body.removeChild(script);
+        // Only remove if we added it
+        const scriptElement = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+        if (scriptElement) {
+          document.body.removeChild(scriptElement);
+        }
       };
     };
 
@@ -43,18 +50,32 @@ const SignupForm = () => {
   }, []);
 
   const initializeGoogleSignUp = () => {
-    if (window.google) {
-      window.google.accounts.id.initialize({
-        client_id: '756781097319-h7bgtos2krue9i7ofu0c8lml2ur2kpc0.apps.googleusercontent.com',
-        callback: handleGoogleCredential,
-        auto_select: false,
-      });
+    if (window.google && document.getElementById('googleSignupButton')) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: '756781097319-h7bgtos2krue9i7ofu0c8lml2ur2kpc0.apps.googleusercontent.com',
+          callback: handleGoogleCredential,
+          auto_select: false,
+        });
+
+        window.google.accounts.id.renderButton(
+          document.getElementById('googleSignupButton'),
+          {
+            type: 'standard',
+            theme: 'outline',
+            size: 'large',
+            text: 'signup_with',
+            width: '100%',
+          }
+        );
+      } catch (error) {
+        console.error("Error initializing Google Sign-Up:", error);
+      }
     }
   };
 
-  // New handler for Google credential
+  // Handler for Google credential
   const handleGoogleCredential = async (response) => {
-    
     const result = await handleGoogleSignup(response.credential);
     
     if (result.success) {
@@ -62,18 +83,12 @@ const SignupForm = () => {
       sessionStorage.setItem('registrationData', JSON.stringify({
         email: result.email,
         name: result.name,
-        googleCredential: response.credential, // Store the original credential
+        googleCredential: response.credential,
         timestamp: Date.now()
       }));
       navigate('/auth/select-slug');
     } else {
       console.error('Google signup failed:', result.error);
-    }
-  };
-
-  const handleCustomGoogleSignup = () => {
-    if (window.google) {
-      window.google.accounts.id.prompt();
     }
   };
 
@@ -114,24 +129,7 @@ const SignupForm = () => {
   return (
     <form onSubmit={onSubmit} className="max-w-md mx-auto p-6 bg-white shadow-lg rounded-lg">
       <h2 className="text-2xl font-bold text-center mb-6">Set Up Your Account</h2>
-
-      {/* Custom Google button that matches login component */}
-      <button
-        type="button"
-        onClick={handleCustomGoogleSignup}
-        className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 py-3 rounded-md hover:bg-gray-50 transition-all mt-4"
-      >
-        <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
-          <path fill="#4285F4" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"/>
-        </svg>
-        <span>Sign up with Google</span>
-      </button>
-
-      <div className="flex items-center justify-center mt-6">
-        <div className="flex-grow border-t border-gray-300"></div>
-        <span className="mx-4 text-gray-400">Or</span>
-        <div className="flex-grow border-t border-gray-300"></div>
-      </div>
+      <p className="text-center mt-2">Already have an account? <Link to="/auth/signin" className="text-blue-500">Log in</Link></p>
 
       <div className="mt-4">
         <label htmlFor="name" className="block text-gray-700">Name:</label>
@@ -142,7 +140,7 @@ const SignupForm = () => {
           onChange={(e) => setName(e.target.value)}
           className="w-full p-3 mt-2 border border-gray-300 rounded-md"
         />
-        {fullNameError && <p className="text-red-500 text-sm">{fullNameError}</p>}
+        {fullNameError && <p className="text-red-500 text-sm mt-1">{fullNameError}</p>}
       </div>
 
       <div className="mt-4">
@@ -154,7 +152,7 @@ const SignupForm = () => {
           onChange={(e) => setEmail(e.target.value)}
           className="w-full p-3 mt-2 border border-gray-300 rounded-md"
         />
-        {emailError && <p className="text-red-500 text-sm">{emailError}</p>}
+        {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
       </div>
 
       <div className="mt-4">
@@ -166,7 +164,7 @@ const SignupForm = () => {
           onChange={(e) => setPassword(e.target.value)}
           className="w-full p-3 mt-2 border border-gray-300 rounded-md"
         />
-        {passwordError && <p className="text-red-500 text-sm">{passwordError}</p>}
+        {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
       </div>
 
       <Button
@@ -177,10 +175,13 @@ const SignupForm = () => {
         {isValidatingEmail ? 'Validating Email...' : isSubmitting ? 'Submitting...' : 'Create Account'}
       </Button>
 
-      {/* Add this new section */}
-      <div className="text-center mt-4 text-sm">
-        Already have an account? <Link to="/auth/signin" className="text-blue-500 font-medium">Log in</Link>
+      <div className="flex items-center justify-center mt-6">
+        <div className="flex-grow border-t border-gray-300"></div>
+        <span className="mx-4 text-gray-400">Or</span>
+        <div className="flex-grow border-t border-gray-300"></div>
       </div>
+
+      <div id="googleSignupButton" className="mt-3 flex justify-center"></div>
 
       <div className="text-center mt-4 text-sm">
         By signing in, you agree to our <Link to="/company/terms" className="text-blue-500">Terms of Service</Link> and <Link to="/company/privacy" className="text-blue-500">Privacy Policy</Link>.

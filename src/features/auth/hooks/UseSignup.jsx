@@ -58,18 +58,30 @@ export const useSignup = () => {
     }
   };
 
-  const handleGoogleSignup = async (credential) => {
+  const handleGoogleSignup = async (credential, slug = null) => {
     try {
       setIsSubmitting(true);
       
-      const result = await signupWithGoogle(credential);
+      // Check slug availability if provided
+      if (slug) {
+        const isSlugAvailable = await checkSlugAvailability(slug);
+        if (!isSlugAvailable) {
+          return { 
+            success: false, 
+            error: 'Username is already taken'
+          };
+        }
+      }
+      
+      const result = await signupWithGoogle(credential, slug);
       
       if (result.success) {
         return { 
           success: true,
           email: result.email,
           name: result.name,
-          idToken: result.idToken || credential
+          idToken: result.idToken || credential,
+          slug: result.slug
         };
       } else {
         throw new Error(result.error || 'Google signup failed');

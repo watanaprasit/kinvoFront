@@ -2,24 +2,24 @@ import styled from 'styled-components';
 
 export const StyledProfileEditor = styled.div`
   display: flex;
-  flex-direction: column; /* Keep this for wrapping the slug link above the layout */
+  flex-direction: column;
   gap: 2rem;
   padding: 1.5rem;
-  max-width: 1200px;
+  max-width: 100%; // Changed from 1200px to allow full width usage
   margin: 0 auto;
-  position: relative; /* Added for positioning the ErrorToast */
+  position: relative;
   
-  /* THIS IS THE KEY CHANGE - we need to style this for a row layout */
+  /* Updated layout to position editor on left and preview on far right */
   .editor-preview-container {
     display: flex;
-    flex-direction: row; /* This makes the editor and preview side by side */
+    justify-content: space-between; // This will push items to the edges
     gap: 2rem;
+    position: relative; // Added for positioning context
     
     @media (max-width: 768px) {
-      flex-direction: column; /* Stack vertically on mobile */
+      flex-direction: column;
     }
   }
-  /* Add these to your existing StyledProfileEditor styles */
 
   .section-divider {
     margin: 30px 0 20px;
@@ -34,7 +34,6 @@ export const StyledProfileEditor = styled.div`
     margin-bottom: 15px;
   }
 
-  /* Update contact buttons to show active state when data is present */
   .contact-buttons .contact-button {
     padding: 8px 16px;
     background-color: #f5f5f5;
@@ -114,37 +113,18 @@ export const ErrorToast = styled.div`
   }
 `;
 
-export const CompanyLogoContainer = styled.div`
-  display: inline-flex; /* Changed to inline-flex */
-  justify-content: flex-start;
-  margin-bottom: 1.5rem;
-  background-color: #c0b8ae;
-  padding: 1rem;
-  border-radius: 6px;
-  border: 2px solid #8c7e73;
-  border-left: 3px solid #8c7e73;
-  align-self: flex-start; /* Add this to prevent stretching */
-  max-width: fit-content; /* Make container only as wide as content */
-  
-  img {
-    max-height: 40px;
-    max-width: 180px;
-    border-radius: 8px;
-  }
-`;
-
 export const SlugLinkContainer = styled.div`
   display: flex;
   align-items: center;
-  background-color: #c0b8ae; /* Taupe color for slug area */
+  background-color: #c0b8ae;
   padding: 1rem;
   border-radius: 6px;
-  margin: 1.5rem auto; /* Changed from margin-bottom to center it */
-  border-left: 3px solid #8c7e73; /* Darker taupe border */
+  margin: 1.5rem auto;
+  border-left: 3px solid #8c7e73;
   font-size: 1rem;
-  border: 2px solid #8c7e73; /* Complete border around slug container */
-  max-width: 600px; /* Added max-width for better appearance */
-  width: calc(100% - 3rem); /* Account for padding */
+  border: 2px solid #8c7e73;
+  max-width: 600px;
+  width: calc(100% - 3rem);
   
   .slug-message {
     font-weight: 600;
@@ -164,7 +144,6 @@ export const SlugLinkContainer = styled.div`
       text-decoration: underline;
     }
     
-    /* Ensure the domain and slug appear visually connected */
     .domain {
       font-weight: 500;
     }
@@ -216,12 +195,19 @@ export const SlugLinkContainer = styled.div`
 `;
 
 export const EditorContainer = styled.div`
-  flex: 2;
+  flex: 0 1 600px; /* Fixed width of 600px, won't grow but can shrink */
   padding: 1.5rem;
   background-color: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); /* Enhanced shadow */
-  border: 2px solid #ddd; /* Adding obvious border */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 2px solid #ddd;
+  align-self: flex-start; /* Align to top */
+  
+  @media (max-width: 768px) {
+    align-self: center;
+    margin-bottom: 2rem;
+    width: 100%;
+  }
   
   .form-group {
     margin-bottom: 1.5rem;
@@ -241,7 +227,7 @@ export const EditorContainer = styled.div`
     input, textarea {
       width: 100%;
       padding: 0.75rem;
-      border: 1px solid #bbb; /* Darker border for input fields */
+      border: 1px solid #bbb;
       border-radius: 4px;
       font-size: 1rem;
       
@@ -271,7 +257,6 @@ export const EditorContainer = styled.div`
   .photo-upload {
     margin-bottom: 1.5rem;
     
-    /* Move the label above the image container */
     label {
       display: block;
       margin-bottom: 0.5rem;
@@ -291,7 +276,7 @@ export const EditorContainer = styled.div`
       overflow: hidden;
       margin-bottom: 1rem;
       position: relative;
-      border: 3px solid #ddd; /* Adding border to image container */
+      border: 3px solid #ddd;
       
       img {
         width: 100%;
@@ -331,7 +316,6 @@ export const EditorContainer = styled.div`
           background-color: #f0f0f0;
         }
         
-        /* Remove span styling and let SVG handle the icon */
         svg {
           width: 16px;
           height: 16px;
@@ -341,9 +325,7 @@ export const EditorContainer = styled.div`
     }
   }
   
-  /* New styling for company logo upload */
   .company-logo-upload {
-    /* Ensure the label is above the image container */
     label {
       display: block;
       margin-bottom: 0.5rem;
@@ -359,7 +341,7 @@ export const EditorContainer = styled.div`
     .image-container {
       width: 200px;
       height: 80px;
-      border-radius: 8px; /* Rectangular shape with slight rounding */
+      border-radius: 8px;
       overflow: hidden;
       margin-bottom: 1rem;
       position: relative;
@@ -368,8 +350,8 @@ export const EditorContainer = styled.div`
       img {
         width: 100%;
         height: 100%;
-        object-fit: contain; /* Changed to contain for logos */
-        background-color: #f5f5f5; /* Light background for logo */
+        object-fit: contain;
+        background-color: #f5f5f5;
       }
       
       .no-logo-placeholder {
@@ -383,7 +365,6 @@ export const EditorContainer = styled.div`
         font-style: italic;
       }
       
-      // Update the edit-icon in both photo-upload and company-logo-upload classes
       .edit-icon {
         position: absolute;
         bottom: 5px;
@@ -404,7 +385,6 @@ export const EditorContainer = styled.div`
           background-color: #f0f0f0;
         }
         
-        /* Remove span styling and let SVG handle the icon */
         svg {
           width: 16px;
           height: 16px;
@@ -412,13 +392,12 @@ export const EditorContainer = styled.div`
         }
       }
         
-        span {
-          font-size: 12px;
-          color: #aaa;
-          transform: rotate(-45deg); /* Angled pencil similar to image */
-          display: block;
-          transition: color 0.2s ease;
-        }
+      span {
+        font-size: 12px;
+        color: #aaa;
+        transform: rotate(-45deg);
+        display: block;
+        transition: color 0.2s ease;
       }
     }
   }
@@ -446,34 +425,29 @@ export const EditorContainer = styled.div`
 `;
 
 export const PreviewContainer = styled.div`
-  flex: 1;
+  flex: 0 0 336px; /* Fixed width of 336px, won't grow or shrink */
+  position: fixed; /* Changed from sticky to fixed */
+  top: 80px; /* Adjust based on your header height */
+  right: 40px; /* Position from the right edge of the viewport */
+  height: fit-content;
   display: flex;
-  flex-direction: column;
-  position: sticky;
-  top: 20px;
-  align-self: center; /* Changed from flex-start to center */
-  justify-content: center; /* Added to center vertically */
-  min-width: 336px; /* Reduced from 420px by 20% */
+  justify-content: center;
+  z-index: 10; /* Ensure it's above other content if needed */
   
-  @media (max-width: 1100px) {
-    ${EditorContainer} {
-      flex: 1.5;
-    }
-  }
-  
-  @media (max-width: 900px) {
-    ${EditorContainer} {
-      flex: 1.2;
-    }
-  }
-  
-  @media (max-width: 850px) {
-    min-width: 304px;
+  @media (max-width: 1200px) {
+    /* For medium screens, stick to right side but avoid overlap */
+    position: sticky;
+    top: 20px;
+    right: auto;
+    align-self: flex-end;
   }
   
   @media (max-width: 768px) {
-    min-width: unset;
-    align-self: center; /* Ensure it stays centered on mobile */
+    /* For mobile screens, revert to normal flow */
+    position: static;
+    align-self: center;
+    margin-top: 2rem;
+    width: 100%;
   }
   
   .preview-card {
@@ -487,11 +461,10 @@ export const PreviewContainer = styled.div`
     text-align: center;
     position: relative;
     border: 10px solid #222;
-    width: 336px; /* Reduced from 420px by 20% */
+    width: 336px;
     margin: 0 auto;
     overflow: hidden;
     
-    /* Phone notch styling */
     &:before {
       content: '';
       position: absolute;
@@ -505,7 +478,6 @@ export const PreviewContainer = styled.div`
       z-index: 2;
     }
     
-    /* Company logo area */
     .company-logo-container {
       width: 100%;
       display: flex;
@@ -513,7 +485,6 @@ export const PreviewContainer = styled.div`
       align-items: center;
       padding: 20px;
       
-      /* This is the actual floating container: */
       > div {
         display: inline-flex;
         background-color: #c0b8ae;
@@ -521,8 +492,8 @@ export const PreviewContainer = styled.div`
         border-radius: 6px;
         border: 2px solid #8c7e73;
         border-left: 3px solid #8c7e73;
-        max-width: 100%; /* Changed from fit-content to allow more space */
-        width: auto; /* Added to prevent container from constraining width */
+        max-width: 100%;
+        width: auto;
       }
       
       .no-logo-placeholder {
@@ -549,14 +520,13 @@ export const PreviewContainer = styled.div`
       
       img {
         max-height: 80px;
-        max-width: 100%; /* Changed from 240px to prevent squishing */
-        width: auto; /* Added to maintain aspect ratio */
+        max-width: 100%;
+        width: auto;
         border-radius: 8px;
         object-fit: contain;
       }
     }
     
-    /* Container for profile info */
     .profile-content {
       width: 100%;
       padding: 20px;
@@ -564,7 +534,7 @@ export const PreviewContainer = styled.div`
       display: flex;
       flex-direction: column;
       align-items: center;
-      border-top: 2px solid #ddd; /* Adding subtle border */
+      border-top: 2px solid #ddd;
     }
     
     .image-wrapper {
@@ -607,7 +577,6 @@ export const PreviewContainer = styled.div`
       max-width: 90%;
     }
     
-    /* Contact buttons */
     .contact-buttons {
       width: 100%;
       display: flex;
@@ -628,7 +597,7 @@ export const PreviewContainer = styled.div`
         margin: 0 10px;
         width: calc(100% - 20px);
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        border: 1px solid #ddd; /* Adding border to buttons */
+        border: 1px solid #ddd;
         
         svg {
           margin-right: 8px;
@@ -643,12 +612,11 @@ export const PreviewContainer = styled.div`
       padding: 5px;
     }
     
-    /* Kinvo branding at bottom */
     .kinvo-branding {
       width: 100%;
       padding: 18px 0;
-      background-color: #aa9f94; /* Changed to taupe color */
-      border-top: 2px solid #8c7e73; /* Darker taupe border */
+      background-color: #aa9f94;
+      border-top: 2px solid #8c7e73;
       margin-top: 15px;
       
       .brand-text {
