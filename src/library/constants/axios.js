@@ -63,7 +63,10 @@ export const userAPI = {
 // QR Code API endpoints
 export const qrCodeAPI = {
   get: (params) => api.get('/api/v1/users/me/qrcode', { params }),
-  getPublic: (slug, params) => axios.get(`${BASE_URL}/${slug}/qrcode`, { params }),
+  
+  // Fix the URL structure for the public endpoint
+  getPublic: (slug, params) => axios.get(`${BASE_URL}/api/v1/users/${slug}/qrcode`, { params }),
+  
   update: (qrCodeData) => api.put('/api/v1/users/me/qrcode', { qr_data: qrCodeData }),
 };
 

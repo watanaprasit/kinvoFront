@@ -3,66 +3,20 @@ import { useAuth } from '../../../auth/context/AuthContext';
 import { ProfileService } from '../../services/profileServices';
 import ProfileQRCode from '../../../qrCode/components/ProfileQRCode';
 import { StyledProfileEditor, PreviewContainer, EditorContainer, SlugLinkContainer, ErrorToast } from './styles';
+// Import the formatters
+import { cleanImageUrl, formatPhotoUrl, getUserFriendlyError, isValidSlugFormat, formatProfileUrl, formatQrCodeBaseUrl } from '../../../../library/utils/formatters';
 
 const DEFAULT_AVATAR = 'https://api.dicebear.com/6.x/personas/svg?seed=dude';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; 
 const VALID_TYPES = ['image/jpeg', 'image/png'];
 
-// Helper function to convert technical errors to user-friendly messages
-const getUserFriendlyError = (error) => {
-  // Check for specific error patterns and return user-friendly alternatives
-  if (error.includes('violates check constraint')) {
-    return 'Your profile name can only contain letters, numbers, and hyphens.';
-  } else if (error.includes('Slug is already taken')) {
-    return 'This profile name is already being used by someone else. Please choose another one.';
-  } else if (error.includes('maximum size')) {
-    return 'Your file is too large. Please choose a smaller image (under 5MB).';
-  } else if (error.includes('JPEG or PNG')) {
-    return 'Please upload a photo in JPG or PNG format only.';
-  } else if (error.includes('network error') || error.includes('timeout')) {
-    return 'We couldn\'t connect to our servers. Please check your internet connection and try again.';
-  } else if (error.includes('validation')) {
-    return 'Something doesn\'t look right with your information. Please double-check what you\'ve entered.';
-  } else if (error.includes('unauthorized') || error.includes('401')) {
-    return 'Your session has expired. Please refresh the page and log in again.';
-  } else if (error.includes('30 characters or less')) {
-    return 'Your display name must be 30 characters or less.';
-  } else if (error.includes('Display name must be')) {
-    return 'Your display name must be 30 characters or less.';
-  } else if (error.includes('email')) {
-    return 'Please enter a valid email address.';
-  } else if (error.includes('website')) {
-    return 'Website must be a valid URL starting with http:// or https://';
-  }
-  
-  // Default user-friendly message
-  try {
-    if (error.includes('{') && error.includes('}')) {
-      const jsonMatch = error.match(/\{.*\}/);
-      if (jsonMatch) {
-        const errorObj = JSON.parse(jsonMatch[0]);
-        if (errorObj.detail) {
-          return errorObj.detail; // Return the specific error message from the API
-        }
-      }
-    }
-  } catch (e) {
-    // If JSON parsing fails, continue to default message
-  }
-  
-  // Default user-friendly message
-  return 'Something went wrong. Please try again or contact support if the problem persists.';
-};
-
-// Profile Image component remains unchanged
-const ProfileImage = memo(({ isPreview, previewUrl, userProfile, savedPreviewUrl, cleanImageUrl }) => {
-  // Component code unchanged
+// Profile Image component updated to use imported formatters
+const ProfileImage = memo(({ isPreview, previewUrl, userProfile, savedPreviewUrl }) => {
   const [imgSrc, setImgSrc] = useState('');
   const [localLoading, setLocalLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const maxRetries = 2;
   
-  // Function to get display image URL is now a local function inside the component
   const getDisplayImageUrl = useCallback(() => {
     if (savedPreviewUrl) {
       return savedPreviewUrl;
@@ -73,7 +27,7 @@ const ProfileImage = memo(({ isPreview, previewUrl, userProfile, savedPreviewUrl
     }
     
     return DEFAULT_AVATAR;
-  }, [savedPreviewUrl, userProfile?.photo_url, cleanImageUrl]);
+  }, [savedPreviewUrl, userProfile?.photo_url]);
   
   useEffect(() => {
     setLocalLoading(true);
@@ -87,9 +41,9 @@ const ProfileImage = memo(({ isPreview, previewUrl, userProfile, savedPreviewUrl
     if (displayUrl.startsWith('blob:')) {
       setImgSrc(displayUrl);
     } else {
-      setImgSrc(ProfileService.formatPhotoUrl(displayUrl));
+      setImgSrc(formatPhotoUrl(displayUrl));
     }
-  }, [isPreview, previewUrl, getDisplayImageUrl, userProfile, cleanImageUrl]);
+  }, [isPreview, previewUrl, getDisplayImageUrl, userProfile]);
 
   const handleImageError = (e) => {
     if (retryCount < maxRetries) {
@@ -97,7 +51,7 @@ const ProfileImage = memo(({ isPreview, previewUrl, userProfile, savedPreviewUrl
         if (imgSrc.startsWith('blob:')) {
           setRetryCount(prevCount => prevCount + 1);
         } else {
-          setImgSrc(ProfileService.formatPhotoUrl(cleanImageUrl(imgSrc)));
+          setImgSrc(formatPhotoUrl(cleanImageUrl(imgSrc)));
           setRetryCount(prevCount => prevCount + 1);
         }
       }, 500);
@@ -129,9 +83,8 @@ const ProfileImage = memo(({ isPreview, previewUrl, userProfile, savedPreviewUrl
   );
 });
 
-// Company Logo component remains unchanged
-const CompanyLogo = memo(({ previewUrl, userProfile, savedPreviewUrl, cleanImageUrl }) => {
-  // Component code unchanged
+// Company Logo component updated to use imported formatters
+const CompanyLogo = memo(({ previewUrl, userProfile, savedPreviewUrl }) => {
   const [imgSrc, setImgSrc] = useState('');
   const [localLoading, setLocalLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
@@ -153,9 +106,9 @@ const CompanyLogo = memo(({ previewUrl, userProfile, savedPreviewUrl, cleanImage
     if (displayUrl.startsWith('blob:')) {
       setImgSrc(displayUrl);
     } else {
-      setImgSrc(ProfileService.formatPhotoUrl(displayUrl));
+      setImgSrc(formatPhotoUrl(displayUrl));
     }
-  }, [previewUrl, userProfile, cleanImageUrl]);
+  }, [previewUrl, userProfile]);
 
   const handleImageError = (e) => {
     if (retryCount < maxRetries) {
@@ -163,7 +116,7 @@ const CompanyLogo = memo(({ previewUrl, userProfile, savedPreviewUrl, cleanImage
         if (imgSrc.startsWith('blob:')) {
           setRetryCount(prevCount => prevCount + 1);
         } else {
-          setImgSrc(ProfileService.formatPhotoUrl(cleanImageUrl(imgSrc)));
+          setImgSrc(formatPhotoUrl(cleanImageUrl(imgSrc)));
           setRetryCount(prevCount => prevCount + 1);
         }
       }, 500);
@@ -197,7 +150,7 @@ const CompanyLogo = memo(({ previewUrl, userProfile, savedPreviewUrl, cleanImage
   );
 });
 
-// Add proper display names to memo components
+
 ProfileImage.displayName = 'ProfileImage';
 CompanyLogo.displayName = 'CompanyLogo';
 
@@ -261,21 +214,6 @@ const ProfileEditor = () => {
   
   // New state for error toast visibility
   const [showErrorToast, setShowErrorToast] = useState(false);
-
-  // Helper function to clean URLs by removing trailing question marks
-  const cleanImageUrl = useCallback((url) => {
-    if (!url) return null;
-    
-    // First, remove any trailing question mark
-    let cleaned = url.endsWith('?') ? url.slice(0, -1) : url;
-    
-    // Then, remove any existing cache-busting parameters
-    if (cleaned.includes('?t=')) {
-      cleaned = cleaned.split('?t=')[0];
-    }
-    
-    return cleaned;
-  }, []);
   
   useEffect(() => {
     if (userProfile) {
@@ -314,7 +252,7 @@ const ProfileEditor = () => {
         setSavedCompanyLogoUrl('');
       }
     }
-  }, [userProfile, user, cleanImageUrl]);
+  }, [userProfile, user]);
 
   // Effect to show error toast when error changes
   useEffect(() => {
@@ -337,10 +275,10 @@ const ProfileEditor = () => {
     }
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text)
+  const copyToClipboard = (slug) => {
+    navigator.clipboard.writeText(formatProfileUrl(slug, true))
       .then(() => {
-        // Show a temporary success message (we'll add this element)
+        // Show a temporary success message
         const copySuccess = document.getElementById('copy-success');
         copySuccess.style.opacity = '1';
         setTimeout(() => {
@@ -362,8 +300,7 @@ const ProfileEditor = () => {
     
     // Special validation for slug
     if (name === 'slug') {
-      const slugRegex = /^[a-zA-Z0-9-]+$/;
-      if (value && !slugRegex.test(value)) {
+      if (value && !isValidSlugFormat(value)) {
         setSubmitError('Your profile name can only contain letters, numbers, and hyphens.');
         setSlugAvailable(false);
         
@@ -631,7 +568,7 @@ const ProfileEditor = () => {
           <div className="slug-message">Your Kinvo is Live:</div>
           <div className="slug-link-container">
             <a 
-              href={`https://kinvo.com/${formData.slug}`} 
+              href={formatProfileUrl(formData.slug)} 
               target="_blank" 
               rel="noopener noreferrer"
               className="slug-link"
@@ -641,7 +578,7 @@ const ProfileEditor = () => {
             </a>
             <button 
               className="copy-button"
-              onClick={() => copyToClipboard(`https://kinvo.com/${formData.slug}`)}
+              onClick={() => copyToClipboard(formData.slug)}
             >
               Copy your Kinvo URL
             </button>
@@ -661,7 +598,6 @@ const ProfileEditor = () => {
                     previewUrl={companyLogoPreviewUrl}
                     userProfile={userProfile}
                     savedPreviewUrl={savedCompanyLogoUrl}
-                    cleanImageUrl={cleanImageUrl}
                   />
                   {!companyLogoPreviewUrl && !userProfile?.company_logo_url && (
                     <div className="no-logo-placeholder">No company logo</div>
@@ -701,7 +637,6 @@ const ProfileEditor = () => {
                   previewUrl={previewUrl}
                   userProfile={userProfile}
                   savedPreviewUrl={savedPreviewUrl}
-                  cleanImageUrl={cleanImageUrl}
                 />
                 {/* Added pencil icon with attribution */}
                 <div 
@@ -848,7 +783,6 @@ const ProfileEditor = () => {
                 previewUrl={companyLogoPreviewUrl}
                 userProfile={userProfile}
                 savedPreviewUrl={savedCompanyLogoUrl}
-                cleanImageUrl={cleanImageUrl}
               />
               {!companyLogoPreviewUrl && !userProfile?.company_logo_url && (
                 <div className="no-logo-placeholder">No company logo</div>
@@ -863,7 +797,6 @@ const ProfileEditor = () => {
                 previewUrl={previewUrl}
                 userProfile={userProfile}
                 savedPreviewUrl={savedPreviewUrl}
-                cleanImageUrl={cleanImageUrl}
               />
               
               <h3>{previewData.display_name || 'Display Name'}</h3>
@@ -897,7 +830,7 @@ const ProfileEditor = () => {
                   <ProfileQRCode 
                     slug={previewData.slug} 
                     size={80}
-                    baseUrl={process.env.NODE_ENV === 'development' ? 'http://localhost:5173/' : 'https://kinvo.com/'}
+                    baseUrl={formatQrCodeBaseUrl(previewData.slug, process.env.NODE_ENV)}
                   />
                 </div>
               )}
@@ -906,15 +839,15 @@ const ProfileEditor = () => {
               <div className="kinvo-branding">
                 <div className="brand-text">Kinvo</div>
                 <div className="profile-url">
-                  <span>kinvo.com/{previewData.slug || 'profile-name'}</span>
+                  <span>{formatProfileUrl(previewData.slug || 'profile-name', false)}</span>
                 </div>
               </div>
             </div>
           </div>
         </PreviewContainer>
-      </div>
-    </StyledProfileEditor>
-  );
-};
+        </div>
+        </StyledProfileEditor>
+        );
+        };
 
 export default ProfileEditor;
