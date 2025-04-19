@@ -4,8 +4,6 @@ import { StyledSlugProfile } from './styles';
 import { ProfileService } from '../../../features/profile/services/profileServices';
 import ProfileQRCode from '../../../features/qrCode/components/ProfileQRCode';
 
-const DEFAULT_AVATAR = 'https://api.dicebear.com/6.x/personas/svg?seed=dude';
-
 // Profile Image component
 const ProfileImage = memo(({ profileData, cleanImageUrl }) => {
   const [imgSrc, setImgSrc] = useState('');
@@ -20,8 +18,9 @@ const ProfileImage = memo(({ profileData, cleanImageUrl }) => {
     const photoUrl = profileData?.profile?.photo_url;
 
     if (!photoUrl) {
-      setImgSrc(DEFAULT_AVATAR);
       setLocalLoading(false);
+      // Remove default avatar as backend handles fallback
+      setImgSrc('');
     } else {
       const formattedUrl = ProfileService.formatPhotoUrl(cleanImageUrl(photoUrl));
       setImgSrc(formattedUrl);
@@ -40,14 +39,18 @@ const ProfileImage = memo(({ profileData, cleanImageUrl }) => {
           setRetryCount(prevCount => prevCount + 1);
         }, 500);
       } else {
-        setImgSrc(DEFAULT_AVATAR);
         setLocalLoading(false);
+        // Remove setting to default avatar
       }
     } else {
       setLocalLoading(false);
-      e.target.src = DEFAULT_AVATAR;
+      // Remove setting to default avatar
     }
   };
+
+  if (!imgSrc) {
+    return null; // Don't render anything if no image URL
+  }
 
   return (
     <div className="image-wrapper">
@@ -123,6 +126,7 @@ const SlugProfile = () => {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   // Helper function to clean URLs by removing trailing question marks
   const cleanImageUrl = useCallback((url) => {
@@ -138,6 +142,121 @@ const SlugProfile = () => {
     
     return cleaned;
   }, []);
+
+  // Function to generate vCard content
+  const generateVCard = useCallback((profileData) => {
+    const { profile } = profileData;
+    
+    // Start building the vCard content
+    let vCardContent = 'BEGIN:VCARD\n';
+    vCardContent += 'VERSION:3.0\n';
+    
+    // Add name
+    vCardContent += `FN:${profile?.display_name || profileData?.full_name}\n`;
+    
+    // Format name components when available
+    if (profileData?.first_name && profileData?.last_name) {
+      vCardContent += `N:${profileData.last_name};${profileData.first_name};;;\n`;
+    }
+    
+    // Add organization if company name exists
+    if (profile?.company_name) {
+      vCardContent += `ORG:${profile.company_name}\n`;
+    }
+    
+    // Add job title if exists
+    if (profile?.title) {
+      vCardContent += `TITLE:${profile.title}\n`;
+    }
+    
+    // Add phone if exists - support multiple phone types
+    if (profile?.contact?.phone) {
+      vCardContent += `TEL;TYPE=CELL:${profile.contact.phone}\n`;
+    }
+    
+    // Add email if exists
+    if (profile?.email) {
+      vCardContent += `EMAIL;TYPE=WORK:${profile.email}\n`;
+    }
+    
+    // Add website if exists
+    if (profile?.website) {
+      const website = profile.website.startsWith('http') ? 
+        profile.website : `https://${profile.website}`;
+      vCardContent += `URL:${website}\n`;
+    }
+    
+    // Add Kinvo URL
+    const baseUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:5173/' : 'https://kinvo.com/';
+    vCardContent += `URL;TYPE=PROFILE:${baseUrl}${profileData.slug}\n`;
+    
+    // Add note with bio if exists
+    if (profile?.bio) {
+      // Escape special characters in the note field
+      const escapedBio = profile.bio
+        .replace(/,/g, '\\,')
+        .replace(/;/g, '\\;')
+        .replace(/\n/g, '\\n');
+      vCardContent += `NOTE:${escapedBio}\n`;
+    }
+    
+    vCardContent += 'END:VCARD';
+    
+    return vCardContent;
+  }, []);
+
+  // Function to handle downloading/saving contact
+  const saveContact = useCallback((e) => {
+    e.preventDefault();
+    
+    if (!profileData) return;
+    
+    const vCardContent = generateVCard(profileData);
+    const blob = new Blob([vCardContent], { type: 'text/vcard' });
+    const url = URL.createObjectURL(blob);
+    
+    const filename = `${profileData?.profile?.display_name || profileData?.full_name || 'contact'}.vcf`;
+    
+    // Check if iOS
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    
+    if (iOS) {
+      // For iOS, we need a different approach since direct downloads don't always work
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.setAttribute('download', filename);
+      a.setAttribute('target', '_blank');
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        // Show confirmation message
+        setShowConfirmation(true);
+        setTimeout(() => setShowConfirmation(false), 3000);
+      }, 100);
+    } else {
+      // For Android and other devices
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.setAttribute('download', filename);
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        // Show confirmation message
+        setShowConfirmation(true);
+        setTimeout(() => setShowConfirmation(false), 3000);
+      }, 100);
+    }
+  }, [profileData, generateVCard]);
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -231,6 +350,30 @@ const SlugProfile = () => {
           
           {/* Contact Buttons Section */}
           <div className="contact-buttons">
+            {/* Save Contact Button - Primary action for the user */}
+            <div className="contact-button save-contact-button">
+              <a href="#" onClick={saveContact}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="8.5" cy="7" r="4"></circle>
+                  <path d="M20 8v6"></path>
+                  <path d="M23 11h-6"></path>
+                </svg>
+                Save Contact
+              </a>
+            </div>
+            
+            {profileData?.profile?.contact?.phone && (
+              <div className="contact-button">
+                <a href={`tel:${profileData.profile.contact.phone}`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                  </svg>
+                  Call
+                </a>
+              </div>
+            )}
+            
             {profileData?.profile?.website && (
               <div className="contact-button">
                 <a 
@@ -250,17 +393,6 @@ const SlugProfile = () => {
               </div>
             )}
             
-            {profileData?.profile?.contact?.phone && (
-              <div className="contact-button">
-                <a href={`tel:${profileData.profile.contact.phone}`}>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                  </svg>
-                  Call
-                </a>
-              </div>
-            )}
-            
             {profileData?.profile?.email && (
               <div className="contact-button">
                 <a href={`mailto:${profileData.profile.email}`}>
@@ -274,22 +406,20 @@ const SlugProfile = () => {
             )}
           </div>
 
-          <div className="share-section">
+          {/* Confirmation message */}
+          {showConfirmation && (
+            <div className="confirmation-message">
+              <p>Contact saved! Check your downloads or contacts app.</p>
+            </div>
+          )}
 
+          <div className="share-section">
             <ProfileQRCode 
               slug={profileData.slug} 
               size={100}
               downloadable={true}
               baseUrl={process.env.NODE_ENV === 'development' ? 'http://localhost:5173/' : 'https://kinvo.com/'}
             />
-          </div>
-          
-          {/* Kinvo Branding Section */}
-          <div className="kinvo-branding">
-            <div className="brand-text">Kinvo</div>
-            <div className="profile-url">
-              <span>kinvo.com/{profileData?.slug}</span>
-            </div>
           </div>
         </div>
       </div>

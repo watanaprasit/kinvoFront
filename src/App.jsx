@@ -29,6 +29,8 @@ function AppRoutes() {
   const isAuthPage = ['/auth/signin', '/auth/register', '/auth/select-slug'].includes(location.pathname);
   // Check if current path is landing page
   const isLandingPage = location.pathname === '/';
+  // Check if current path is a slug profile page (any path that is just a single segment)
+  const isSlugProfilePage = /^\/[^/]+$/.test(location.pathname) && location.pathname !== '/';
   
   // Determine which header to display
   const renderHeader = () => {
@@ -37,6 +39,9 @@ function AppRoutes() {
       return null;
     } else if (isLandingPage) {
       // No header for landing page as it has its own header
+      return null;
+    } else if (isSlugProfilePage) {
+      // No header for slug profile pages
       return null;
     } else {
       // Show Header on other pages when not logged in
