@@ -1,19 +1,28 @@
 // src/features/dashboard/components/Settings.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../../features/auth/context/AuthContext';
+import { useTheme } from '../../../context/ThemeContext'; // Import useTheme hook
 import { Bell, Lock, Globe, CreditCard, Mail } from 'lucide-react';
 
 const Settings = () => {
   const { user } = useAuth();
+  const { theme, setTheme } = useTheme(); // Use the theme context
   const [activeTab, setActiveTab] = useState('account');
   const [formData, setFormData] = useState({
     email: user?.email || '',
     receiveUpdates: true,
     receivePromotions: false,
-    darkMode: false,
     language: 'en',
     twoFactorAuth: false
   });
+
+  // Initialize the theme state when component mounts
+  useEffect(() => {
+    setFormData(prevData => ({
+      ...prevData,
+      darkMode: theme === 'dark'
+    }));
+  }, [theme]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -21,6 +30,12 @@ const Settings = () => {
       ...formData,
       [name]: type === 'checkbox' ? checked : value
     });
+  };
+
+  // Function to handle theme change
+  const handleThemeChange = (isDark) => {
+    setFormData({ ...formData, darkMode: isDark });
+    setTheme(isDark ? 'dark' : 'light');
   };
 
   const handleSubmit = (e) => {
@@ -35,7 +50,7 @@ const Settings = () => {
         return (
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="email">
+              <label className="block text-sm font-medium text-text-primary mb-1" htmlFor="email">
                 Email Address
               </label>
               <input
@@ -44,28 +59,28 @@ const Settings = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-input"
                 required
               />
             </div>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="password">
+              <label className="block text-sm font-medium text-text-primary mb-1" htmlFor="password">
                 Change Password
               </label>
               <button
                 type="button"
-                className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 text-sm border border-border rounded-md hover:bg-bg-secondary"
               >
                 Update Password
               </button>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-text-secondary">
                 Password must be at least 8 characters long with a mix of letters, numbers, and symbols.
               </p>
             </div>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-primary mb-2">
                 Two-Factor Authentication
               </label>
               <div className="flex items-center">
@@ -75,13 +90,13 @@ const Settings = () => {
                   name="twoFactorAuth"
                   checked={formData.twoFactorAuth}
                   onChange={handleInputChange}
-                  className="h-4 w-4 text-blue-600 rounded"
+                  className="h-4 w-4 text-accent rounded"
                 />
-                <label className="ml-2 text-sm text-gray-600" htmlFor="twoFactorAuth">
+                <label className="ml-2 text-sm text-text-secondary" htmlFor="twoFactorAuth">
                   Enable two-factor authentication
                 </label>
               </div>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-text-secondary">
                 Add an extra layer of security to your account.
               </p>
             </div>
@@ -89,7 +104,7 @@ const Settings = () => {
             <div className="mt-6">
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="px-4 py-2 bg-button-bg text-button-text rounded-md hover:bg-accent"
               >
                 Save Changes
               </button>
@@ -101,10 +116,10 @@ const Settings = () => {
         return (
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
-              <div className="flex items-center justify-between py-3 border-b border-gray-200">
+              <div className="flex items-center justify-between py-3 border-b border-border">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-800">Product Updates</h3>
-                  <p className="text-xs text-gray-500">Receive updates about new features and improvements</p>
+                  <h3 className="text-sm font-medium text-text-primary">Product Updates</h3>
+                  <p className="text-xs text-text-secondary">Receive updates about new features and improvements</p>
                 </div>
                 <div className="flex items-center">
                   <input
@@ -113,15 +128,15 @@ const Settings = () => {
                     name="receiveUpdates"
                     checked={formData.receiveUpdates}
                     onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 rounded"
+                    className="h-4 w-4 text-accent rounded"
                   />
                 </div>
               </div>
               
-              <div className="flex items-center justify-between py-3 border-b border-gray-200">
+              <div className="flex items-center justify-between py-3 border-b border-border">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-800">Marketing Emails</h3>
-                  <p className="text-xs text-gray-500">Receive promotional offers and marketing communications</p>
+                  <h3 className="text-sm font-medium text-text-primary">Marketing Emails</h3>
+                  <p className="text-xs text-text-secondary">Receive promotional offers and marketing communications</p>
                 </div>
                 <div className="flex items-center">
                   <input
@@ -130,15 +145,15 @@ const Settings = () => {
                     name="receivePromotions"
                     checked={formData.receivePromotions}
                     onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 rounded"
+                    className="h-4 w-4 text-accent rounded"
                   />
                 </div>
               </div>
               
-              <div className="flex items-center justify-between py-3 border-b border-gray-200">
+              <div className="flex items-center justify-between py-3 border-b border-border">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-800">Security Alerts</h3>
-                  <p className="text-xs text-gray-500">Get notified about important security updates</p>
+                  <h3 className="text-sm font-medium text-text-primary">Security Alerts</h3>
+                  <p className="text-xs text-text-secondary">Get notified about important security updates</p>
                 </div>
                 <div className="flex items-center">
                   <input
@@ -147,7 +162,7 @@ const Settings = () => {
                     name="securityAlerts"
                     checked={true}
                     onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 rounded"
+                    className="h-4 w-4 text-accent rounded"
                     disabled
                   />
                 </div>
@@ -157,7 +172,7 @@ const Settings = () => {
             <div className="mt-6">
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="px-4 py-2 bg-button-bg text-button-text rounded-md hover:bg-accent"
               >
                 Save Preferences
               </button>
@@ -169,7 +184,7 @@ const Settings = () => {
         return (
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-primary mb-2">
                 Theme
               </label>
               <div className="flex items-center mb-2">
@@ -179,10 +194,10 @@ const Settings = () => {
                   name="theme"
                   value="light"
                   checked={!formData.darkMode}
-                  onChange={() => setFormData({...formData, darkMode: false})}
-                  className="h-4 w-4 text-blue-600"
+                  onChange={() => handleThemeChange(false)}
+                  className="h-4 w-4 text-accent"
                 />
-                <label className="ml-2 text-sm text-gray-600" htmlFor="lightMode">
+                <label className="ml-2 text-sm text-text-secondary" htmlFor="lightMode">
                   Light Mode
                 </label>
               </div>
@@ -193,17 +208,17 @@ const Settings = () => {
                   name="theme"
                   value="dark"
                   checked={formData.darkMode}
-                  onChange={() => setFormData({...formData, darkMode: true})}
-                  className="h-4 w-4 text-blue-600"
+                  onChange={() => handleThemeChange(true)}
+                  className="h-4 w-4 text-accent"
                 />
-                <label className="ml-2 text-sm text-gray-600" htmlFor="darkMode">
+                <label className="ml-2 text-sm text-text-secondary" htmlFor="darkMode">
                   Dark Mode
                 </label>
               </div>
             </div>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="language">
+              <label className="block text-sm font-medium text-text-primary mb-1" htmlFor="language">
                 Language
               </label>
               <select
@@ -211,7 +226,7 @@ const Settings = () => {
                 name="language"
                 value={formData.language}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-input text-text-primary"
               >
                 <option value="en">English</option>
                 <option value="es">Spanish</option>
@@ -223,7 +238,7 @@ const Settings = () => {
             <div className="mt-6">
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="px-4 py-2 bg-button-bg text-button-text rounded-md hover:bg-accent"
               >
                 Save Preferences
               </button>
@@ -234,48 +249,48 @@ const Settings = () => {
       case 'billing':
         return (
           <div>
-            <div className="bg-blue-50 p-4 rounded-lg mb-6">
-              <p className="text-sm text-blue-800">
+            <div className="bg-blue-50 p-4 rounded-lg mb-6 dark:bg-blue-900 dark:text-blue-100">
+              <p className="text-sm">
                 <span className="font-medium">Current Plan:</span> Free
               </p>
             </div>
             
-            <div className="border border-gray-200 rounded-lg p-4 mb-6">
-              <h3 className="text-lg font-medium mb-4">Upgrade to Premium</h3>
+            <div className="border border-border rounded-lg p-4 mb-6 bg-card">
+              <h3 className="text-lg font-medium mb-4 text-text-primary">Upgrade to Premium</h3>
               <ul className="space-y-2 mb-4">
                 <li className="flex items-start">
                   <svg className="h-5 w-5 text-green-500 mr-2" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-sm">Unlimited business cards</span>
+                  <span className="text-sm text-text-secondary">Unlimited business cards</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="h-5 w-5 text-green-500 mr-2" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-sm">Advanced analytics</span>
+                  <span className="text-sm text-text-secondary">Advanced analytics</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="h-5 w-5 text-green-500 mr-2" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-sm">Custom branding</span>
+                  <span className="text-sm text-text-secondary">Custom branding</span>
                 </li>
               </ul>
               <button
                 type="button"
-                className="w-full px-4 py-2 text-center bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="w-full px-4 py-2 text-center bg-button-bg text-button-text rounded-md hover:bg-accent"
               >
                 Upgrade Now - $9.99/month
               </button>
             </div>
             
-            <div className="border-t border-gray-200 pt-4">
-              <h3 className="text-sm font-medium mb-2">Payment Methods</h3>
-              <p className="text-xs text-gray-500 mb-4">No payment methods added yet.</p>
+            <div className="border-t border-border pt-4">
+              <h3 className="text-sm font-medium mb-2 text-text-primary">Payment Methods</h3>
+              <p className="text-xs text-text-secondary mb-4">No payment methods added yet.</p>
               <button
                 type="button"
-                className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 text-sm border border-border rounded-md hover:bg-bg-secondary text-text-primary"
               >
                 Add Payment Method
               </button>
@@ -289,16 +304,16 @@ const Settings = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md">
+    <div className="bg-bg-primary rounded-lg shadow-md">
       <div className="md:grid md:grid-cols-12">
         {/* Sidebar */}
-        <div className="md:col-span-3 border-r border-gray-200">
+        <div className="md:col-span-3 border-r border-border">
           <div className="p-4">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Settings</h2>
+            <h2 className="text-xl font-bold text-text-primary mb-4">Settings</h2>
             <nav className="space-y-1">
               <button
                 className={`flex items-center px-3 py-2 w-full text-left rounded-md ${
-                  activeTab === 'account' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
+                  activeTab === 'account' ? 'bg-blue-50 text-accent dark:bg-blue-900' : 'text-text-secondary hover:bg-bg-secondary'
                 }`}
                 onClick={() => setActiveTab('account')}
               >
@@ -307,7 +322,7 @@ const Settings = () => {
               </button>
               <button
                 className={`flex items-center px-3 py-2 w-full text-left rounded-md ${
-                  activeTab === 'notifications' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
+                  activeTab === 'notifications' ? 'bg-blue-50 text-accent dark:bg-blue-900' : 'text-text-secondary hover:bg-bg-secondary'
                 }`}
                 onClick={() => setActiveTab('notifications')}
               >
@@ -316,7 +331,7 @@ const Settings = () => {
               </button>
               <button
                 className={`flex items-center px-3 py-2 w-full text-left rounded-md ${
-                  activeTab === 'appearance' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
+                  activeTab === 'appearance' ? 'bg-blue-50 text-accent dark:bg-blue-900' : 'text-text-secondary hover:bg-bg-secondary'
                 }`}
                 onClick={() => setActiveTab('appearance')}
               >
@@ -325,7 +340,7 @@ const Settings = () => {
               </button>
               <button
                 className={`flex items-center px-3 py-2 w-full text-left rounded-md ${
-                  activeTab === 'billing' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
+                  activeTab === 'billing' ? 'bg-blue-50 text-accent dark:bg-blue-900' : 'text-text-secondary hover:bg-bg-secondary'
                 }`}
                 onClick={() => setActiveTab('billing')}
               >
@@ -339,13 +354,13 @@ const Settings = () => {
         {/* Content */}
         <div className="md:col-span-9 p-6">
           <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-900">
+            <h3 className="text-lg font-medium text-text-primary">
               {activeTab === 'account' && 'Account & Security Settings'}
               {activeTab === 'notifications' && 'Notification Preferences'}
               {activeTab === 'appearance' && 'Appearance Settings'}
               {activeTab === 'billing' && 'Billing & Subscription'}
             </h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-text-secondary">
               {activeTab === 'account' && 'Manage your account details and security settings'}
               {activeTab === 'notifications' && 'Control what notifications you receive'}
               {activeTab === 'appearance' && 'Customize how Kinvo looks for you'}

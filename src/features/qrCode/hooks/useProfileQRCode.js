@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
-import axios from 'axios';
-import { API_ROUTES } from '../../../library/constants/routes';
+import { qrCodeAPI } from '../../../library/constants/axios';
 
 export const useProfileQRCode = (baseUrl = 'http://localhost:5173/', slug = null) => {
   // States
@@ -8,11 +7,6 @@ export const useProfileQRCode = (baseUrl = 'http://localhost:5173/', slug = null
   const [qrCodeImage, setQrCodeImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Get auth token
-  const getAuthToken = useCallback(() => {
-    return localStorage.getItem('access_token');
-  }, []);
 
   // Get profile URL
   const getProfileUrl = useCallback((profileSlug) => {
@@ -29,34 +23,10 @@ export const useProfileQRCode = (baseUrl = 'http://localhost:5173/', slug = null
       
       // If slug is provided, use the public endpoint
       if (slug) {
-        const publicEndpoint = `${API_ROUTES.BASE_URL}//${slug}/qrcode`;
-        response = await axios.get(publicEndpoint, {
-          params: {
-            base_url: baseUrl
-          }
-        });
+        response = await qrCodeAPI.getPublic(slug, { base_url: baseUrl });
       } else {
         // Use the authenticated endpoint
-        const token = getAuthToken();
-        
-        if (!token) {
-          console.error('No authentication token found');
-          setError('Authentication required');
-          setIsLoading(false);
-          return Promise.reject('Authentication required');
-        }
-        
-        const endpoint = API_ROUTES.QR_CODE?.GET || `${API_ROUTES.BASE_URL}/api/v1/users/me/qrcode`;
-        
-        response = await axios.get(endpoint, {
-          params: {
-            base_url: baseUrl
-          },
-          withCredentials: true,
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        response = await qrCodeAPI.get({ base_url: baseUrl });
       }
       
       if (response.data) {
@@ -71,36 +41,15 @@ export const useProfileQRCode = (baseUrl = 'http://localhost:5173/', slug = null
       setIsLoading(false);
       throw err;
     }
-  }, [baseUrl, getAuthToken, slug]);
+  }, [baseUrl, slug]);
   
   // Update QR code (authenticated only)
   const updateQRCode = useCallback(async (newQRData) => {
     setIsLoading(true);
     setError(null);
     
-    const token = getAuthToken();
-    
-    if (!token) {
-      console.error('No authentication token found');
-      setError('Authentication required');
-      setIsLoading(false);
-      return Promise.reject('Authentication required');
-    }
-    
     try {
-      const endpoint = API_ROUTES.QR_CODE?.UPDATE || `${API_ROUTES.BASE_URL}/api/v1/users/me/qrcode`;
-      
-      const response = await axios.put(
-        endpoint,
-        { qr_data: newQRData },
-        {
-          withCredentials: true,
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      const response = await qrCodeAPI.update(newQRData);
       
       if (response.data) {
         setQrCodeData(response.data.qr_data);
@@ -114,7 +63,7 @@ export const useProfileQRCode = (baseUrl = 'http://localhost:5173/', slug = null
       setIsLoading(false);
       throw err;
     }
-  }, [getAuthToken]);
+  }, []);
   
   // Download QR code
   const downloadQRCode = useCallback((profileSlug) => {

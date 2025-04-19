@@ -1,14 +1,13 @@
-import axios from 'axios';
-import { API_ROUTES } from '../constants/routes';
+import { userAPI } from '../constants/axios';
 
 export const usersAPI = {
   async checkSlugAvailability(slug) {
-    const response = await axios.get(API_ROUTES.USERS.CHECK_SLUG(slug));
+    const response = await userAPI.checkSlug(slug);
     return response.data;
   },
 
   async updateUserSlug(slug) {
-    const response = await axios.put(API_ROUTES.USERS.UPDATE_SLUG, { slug });
+    const response = await userAPI.updateSlug(slug);
     return response.data;
   }
 };

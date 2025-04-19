@@ -7,6 +7,7 @@ import SlugRegistration from './features/auth/components/SlugRegistration';
 import Dashboard from './pages/app/Dashboard';
 import SlugProfile from './pages/public/SlugProfile/index'
 import { AuthProvider } from './features/auth/context/AuthContext'; 
+import { ThemeProvider } from './context/ThemeContext';
 import Header from './components/common/Header/Header';
 import '../src/styles/tailwind/index.css';
 // Import company section components
@@ -81,8 +82,10 @@ function AppRoutes() {
 export default function App() {
   return (
     <Router> 
-      <AuthProvider> 
-        <AppRoutes />
+      <AuthProvider>
+        <ThemeProvider>
+          <AppRoutes />
+        </ThemeProvider>
       </AuthProvider>
     </Router>
   );
