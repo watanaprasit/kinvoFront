@@ -4,6 +4,7 @@ import { DashboardLayout } from '../../components/layouts/DashboardLayout';
 import ProfileEditor from '../../features/profile/components/ProfileEditor';
 import { useAuth } from '../../features/auth/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { cleanImageUrl, formatPhotoUrl } from '../../library/utils/formatters'; // Import formatters
 
 // Import or create these components as needed
 import BusinessCards from './BusinessCards';
@@ -20,6 +21,7 @@ export default function Dashboard() {
   const [activeSection, setActiveSection] = useState(getInitialSection);
   const { user, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [error, setError] = useState(null);
   
   // Check authentication status and redirect if needed
   useEffect(() => {
@@ -32,6 +34,18 @@ export default function Dashboard() {
   useEffect(() => {
     localStorage.setItem('dashboardActiveSection', activeSection);
   }, [activeSection]);
+
+  // Format profile photo URL when user data is available
+  useEffect(() => {
+    if (user?.profile?.photo_url) {
+      // Update the photo URL with proper formatting
+      const formattedUrl = formatPhotoUrl(cleanImageUrl(user.profile.photo_url));
+      if (formattedUrl !== user.profile.photo_url) {
+        // This would typically update the user profile in context or make an API call
+        console.log('Photo URL formatted:', formattedUrl);
+      }
+    }
+  }, [user]);
 
   // Profile completion percentage calculation
   const calculateProfileCompletion = () => {
@@ -91,6 +105,27 @@ export default function Dashboard() {
                 )}
               </div>
               
+              {/* User profile details */}
+              {user?.profile && (
+                <div className="mb-6">
+                  <div className="flex items-center space-x-4">
+                    {user.profile.photo_url && (
+                      <img 
+                        src={formatPhotoUrl(cleanImageUrl(user.profile.photo_url))} 
+                        alt={user.profile.display_name || 'User'} 
+                        className="w-16 h-16 rounded-full object-cover"
+                      />
+                    )}
+                    <div>
+                      <h3 className="text-lg font-semibold">
+                        {user.profile.display_name || 'Your Name'}
+                      </h3>
+                      <p className="text-gray-600">{user.profile.title || 'Add your title'}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* Quick access cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                 <div 
@@ -129,6 +164,14 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 text-red-800 rounded-lg">
+        <p>An error occurred: {error}</p>
       </div>
     );
   }

@@ -2,13 +2,15 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash, Eye } from 'lucide-react';
 import { useAuth } from '../../features/auth/context/AuthContext';
+import { getUserFriendlyError } from '../../library/utils/formatters'; // Import formatter
 
 const BusinessCards = () => {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const { user } = useAuth();
 
-  // Mock fetch business cards (replace with actual API call)
+  // Fetch business cards with error handling
   useEffect(() => {
     const fetchCards = async () => {
       try {
@@ -29,6 +31,7 @@ const BusinessCards = () => {
         }, 800);
       } catch (error) {
         console.error('Error fetching business cards:', error);
+        setError(getUserFriendlyError(error.message)); // Use formatter for error
         setLoading(false);
       }
     };
@@ -50,7 +53,12 @@ const BusinessCards = () => {
   // Delete card handler
   const handleDeleteCard = (id) => {
     if (window.confirm('Are you sure you want to delete this card?')) {
-      setCards(cards.filter(card => card.id !== id));
+      try {
+        // API call would go here
+        setCards(cards.filter(card => card.id !== id));
+      } catch (error) {
+        setError(getUserFriendlyError(error.message));
+      }
     }
   };
 
@@ -63,6 +71,20 @@ const BusinessCards = () => {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 p-4 rounded-lg text-red-800">
+        <p>Error: {error}</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-2 px-4 py-2 bg-red-100 text-red-800 rounded-md hover:bg-red-200"
+        >
+          Try Again
+        </button>
       </div>
     );
   }

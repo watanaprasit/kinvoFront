@@ -64,7 +64,7 @@ export const userAPI = {
 export const qrCodeAPI = {
   get: (params) => api.get('/api/v1/users/me/qrcode', { params }),
   
-  // Fix the URL structure for the public endpoint
+  // Use the base axios instance without auth interceptors for public endpoint
   getPublic: (slug, params) => axios.get(`${BASE_URL}/api/v1/users/${slug}/qrcode`, { params }),
   
   update: (qrCodeData) => api.put('/api/v1/users/me/qrcode', { qr_data: qrCodeData }),

@@ -7,14 +7,15 @@ const ProfileQRCode = ({ slug, size = 120, downloadable = true, baseUrl = 'https
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Fetch QR code from API using authenticated endpoint
+  // Fetch QR code from API using public endpoint
   useEffect(() => {
     if (!slug) return;
     
     setIsLoading(true);
     setError(null);
     
-    qrCodeAPI.get({ base_url: baseUrl })
+    // Use the public endpoint instead of the authenticated one
+    qrCodeAPI.getPublic(slug, { base_url: baseUrl })
       .then(response => {
         if (response.data && response.data.qr_image) {
           setQrCodeImage(response.data.qr_image);
@@ -27,8 +28,8 @@ const ProfileQRCode = ({ slug, size = 120, downloadable = true, baseUrl = 'https
         console.error('Failed to fetch QR code:', err);
         // Better error handling
         if (err.response) {
-          if (err.response.status === 401) {
-            setError('Your session has expired. Please login again.');
+          if (err.response.status === 404) {
+            setError('QR code not found.');
           } else {
             setError(`Error ${err.response.status}: ${err.response.data?.detail || 'Failed to load QR code'}`);
           }
@@ -72,15 +73,6 @@ const ProfileQRCode = ({ slug, size = 120, downloadable = true, baseUrl = 'https
       ) : error ? (
         <div className="error-message">
           {error}
-          {(error.includes('login') || error.includes('session')) && (
-            <button 
-              className="login-button" 
-              onClick={() => window.location.href = '/login'}
-              style={{ marginTop: '10px', padding: '5px 10px' }}
-            >
-              Login Again
-            </button>
-          )}
         </div>
       ) : (
         <>
@@ -90,6 +82,14 @@ const ProfileQRCode = ({ slug, size = 120, downloadable = true, baseUrl = 'https
             width={size}
             height={size}
           />
+          {downloadable && (
+            <button 
+              className="download-button" 
+              onClick={downloadQRCode}
+            >
+              Download QR Code
+            </button>
+          )}
         </>
       )}
     </QRCodeContainer>

@@ -1,20 +1,24 @@
 // src/features/dashboard/components/Settings.jsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../../features/auth/context/AuthContext';
-import { useTheme } from '../../../context/ThemeContext'; // Import useTheme hook
+import { useTheme } from '../../../context/ThemeContext';
 import { Bell, Lock, Globe, CreditCard, Mail } from 'lucide-react';
+import { validateEmailFormat, validateRequired } from '../../../library/utils/validators';
+import { getUserFriendlyError } from '../../../library/utils/formatters';
 
 const Settings = () => {
   const { user } = useAuth();
-  const { theme, setTheme } = useTheme(); // Use the theme context
+  const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('account');
   const [formData, setFormData] = useState({
     email: user?.email || '',
     receiveUpdates: true,
     receivePromotions: false,
     language: 'en',
-    twoFactorAuth: false
+    twoFactorAuth: false,
+    website: ''
   });
+  const [errors, setErrors] = useState({});
 
   // Initialize the theme state when component mounts
   useEffect(() => {
@@ -30,6 +34,14 @@ const Settings = () => {
       ...formData,
       [name]: type === 'checkbox' ? checked : value
     });
+    
+    // Clear errors when input changes
+    if (errors[name]) {
+      setErrors({
+        ...errors,
+        [name]: null
+      });
+    }
   };
 
   // Function to handle theme change
@@ -38,10 +50,53 @@ const Settings = () => {
     setTheme(isDark ? 'dark' : 'light');
   };
 
-  const handleSubmit = (e) => {
+  const validateForm = () => {
+    const newErrors = {};
+    
+    // Email validation
+    if (!validateRequired(formData.email)) {
+      newErrors.email = "Email is required";
+    } else if (!validateEmailFormat(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+    
+    // Website validation (if provided)
+    if (formData.website && !formData.website.startsWith('http://') && !formData.website.startsWith('https://')) {
+      newErrors.website = "Website must start with http:// or https://";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleApiError = async (apiCall) => {
+    try {
+      return await apiCall();
+    } catch (error) {
+      const friendlyError = getUserFriendlyError(error.message);
+      alert(friendlyError);
+      return null;
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Implementation would save settings to backend
-    alert('Settings saved successfully!');
+    
+    if (validateForm()) {
+      try {
+        // Simulated API call wrapped with error handler
+        await handleApiError(async () => {
+          // Implementation would save settings to backend
+          // Simulate API call delay
+          await new Promise(resolve => setTimeout(resolve, 500));
+          return { success: true };
+        });
+        
+        alert('Settings saved successfully!');
+      } catch (error) {
+        // Error already handled by handleApiError
+      }
+    }
   };
 
   const renderTabContent = () => {
@@ -59,9 +114,29 @@ const Settings = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-input"
+                className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-border'} rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-input`}
                 required
               />
+              {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-text-primary mb-1" htmlFor="website">
+                Website
+              </label>
+              <input
+                type="url"
+                id="website"
+                name="website"
+                value={formData.website}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border ${errors.website ? 'border-red-500' : 'border-border'} rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-input`}
+                placeholder="https://example.com"
+              />
+              {errors.website && <p className="mt-1 text-xs text-red-500">{errors.website}</p>}
+              <p className="mt-1 text-xs text-text-secondary">
+                Website must start with http:// or https://
+              </p>
             </div>
             
             <div className="mb-4">
