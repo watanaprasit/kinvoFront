@@ -478,6 +478,8 @@ export const PreviewContainer = styled.div`
       z-index: 2;
     }
     
+
+    
     .company-logo-container {
       width: 100%;
       display: flex;
@@ -639,6 +641,100 @@ export const PreviewContainer = styled.div`
           padding: 2px 6px;
           border-radius: 4px;
         }
+      }
+    }
+  }
+`;
+
+export const CardSelector = styled.div`
+  margin-bottom: 2rem;
+  
+  h2 {
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .card-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .card-select-button {
+    padding: 0.5rem 1rem;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    
+    &.active {
+      background-color: #4a90e2;
+      color: white;
+      border-color: #3a80d2;
+    }
+    
+    &:hover {
+      background-color: ${props => props.active ? '#3a80d2' : '#e0e0e0'};
+    }
+  }
+  
+  .card-add-button {
+    padding: 0.5rem 1rem;
+    background-color: #f5f5f5;
+    border: 1px dashed #aaa;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #555;
+    
+    &:hover {
+      background-color: #e8e8e8;
+    }
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+  
+  .card-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    
+    button {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.85rem;
+      border-radius: 4px;
+      cursor: pointer;
+      
+      &.set-primary-button {
+        background-color: #52c41a;
+        color: white;
+        border: none;
+        
+        &:hover {
+          background-color: #49ad15;
+        }
+      }
+      
+      &.delete-button {
+        background-color: transparent;
+        border: 1px solid #ff4d4f;
+        color: #ff4d4f;
+        
+        &:hover {
+          background-color: #fff0f0;
+        }
+      }
+      
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
     }
   }

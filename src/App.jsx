@@ -10,6 +10,10 @@ import { AuthProvider } from './features/auth/context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Header from './components/common/Header/Header';
 import '../src/styles/tailwind/index.css';
+// import business card components
+import BusinessCards from './pages/app/BusinessCards';
+import EditBusinessCard from './pages/app/EditBusinessCard';
+
 // Import company section components
 import AboutSection from './components/company/AboutSection';
 import CareersSection from './components/company/CareersSection';
@@ -74,6 +78,8 @@ function AppRoutes() {
         {user ? (
           <>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/business-cards" element={<BusinessCards />} />
+            <Route path="/business-cards/:id" element={<EditBusinessCard />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </>
         ) : (
