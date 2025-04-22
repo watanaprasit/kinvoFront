@@ -163,6 +163,7 @@ import { useAuth } from '../../features/auth/context/AuthContext';
 import { getUserFriendlyError } from '../../library/utils/formatters';
 import CardList from '../../features/businessCards/components/CardList';
 import CardCreator from '../../features/businessCards/components/CardCreator';
+import axios from 'axios'; // Make sure you have axios installed
 
 const BusinessCards = () => {
   const [cards, setCards] = useState([]);
@@ -189,47 +190,27 @@ const BusinessCards = () => {
   const remainingCards = getUserCardLimit() - cards.length;
   const canCreateCard = remainingCards > 0;
 
-  // Fetch business cards
+  // Fetch business cards from the backend API
   useEffect(() => {
     const fetchCards = async () => {
+      if (!user?.id) return;
+      
       try {
         setLoading(true);
         
-        // In a real implementation, replace with actual API call
-        // const response = await fetch(`/api/v1/users/${user.id}/business-cards`);
-        // const data = await response.json();
+        // Call the FastAPI endpoint to get business cards
+        const response = await axios.get(`/api/v1/users/${user.id}/business-cards`);
         
-        // Simulate API call for now
-        setTimeout(() => {
-          // Sample data - replace with actual API response
-          setCards([
-            {
-              id: 1,
-              name: 'Default Card',
-              description: 'My professional business card',
-              theme: 'blue',
-              views: 12,
-              lastEdited: '2025-04-15',
-              is_primary: true,
-              display_name: 'John Doe',
-              title: 'Software Engineer',
-              email: 'john@example.com',
-              website: 'https://johndoe.com',
-              slug: 'johndoe'
-            }
-          ]);
-          setLoading(false);
-        }, 800);
+        setCards(response.data || []);
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching business cards:', error);
-        setError(getUserFriendlyError(error.message));
+        setError(getUserFriendlyError(error.response?.data?.detail || error.message));
         setLoading(false);
       }
     };
 
-    if (user?.id) {
-      fetchCards();
-    }
+    fetchCards();
   }, [user]);
 
   // Create new card handler
@@ -244,37 +225,53 @@ const BusinessCards = () => {
   // Handle template selection
   const handleTemplateSelect = async (newCardData) => {
     try {
-      // Here you would make an API call to create the card
-      // const response = await fetch(`/api/v1/users/${user.id}/business-cards`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(newCardData)
-      // });
-      // const savedCard = await response.json();
+      // Create a FormData object to send file uploads and form data
+      const formData = new FormData();
       
-      // For now, simulate the API response
-      const newCard = {
-        id: Date.now(), // Use a timestamp as a temporary ID
-        name: newCardData.name || 'New Card',
-        description: newCardData.description || '',
-        theme: newCardData.theme || 'blue',
-        views: 0,
-        lastEdited: new Date().toISOString().split('T')[0],
-        is_primary: cards.length === 0, // First card is primary by default
-        display_name: newCardData.display_name || user?.display_name || '',
-        title: newCardData.title || '',
-        email: newCardData.email || user?.email || '',
-        website: newCardData.website || '',
-        slug: newCardData.slug || `${user?.username}-${Date.now()}`
-      };
+      // Add all the text fields to the form data
+      formData.append('display_name', newCardData.display_name || user?.display_name || '');
+      formData.append('slug', newCardData.slug || `${user?.username}-${Date.now()}`);
       
-      setCards([...cards, newCard]);
+      if (newCardData.title) formData.append('title', newCardData.title);
+      if (newCardData.bio) formData.append('bio', newCardData.bio); 
+      if (newCardData.email) formData.append('email', newCardData.email || user?.email || '');
+      if (newCardData.website) formData.append('website', newCardData.website || '');
+      
+      // Handle contact information as JSON
+      if (newCardData.contact) {
+        formData.append('contact', JSON.stringify(newCardData.contact));
+      }
+      
+      // Set as primary if it's the first card
+      formData.append('is_primary', cards.length === 0);
+      
+      // Add file uploads if they exist
+      if (newCardData.photo) {
+        formData.append('photo', newCardData.photo);
+      }
+      if (newCardData.company_logo) {
+        formData.append('company_logo', newCardData.company_logo);
+      }
+      
+      // Send the request to create a new business card
+      const response = await axios.post('/api/v1/users/business-card', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      // Add the new card to the state
+      if (response.data) {
+        setCards([...cards, response.data]);
+      }
+      
       setIsTemplateModalOpen(false);
       
       // In a real implementation, navigate to editor:
-      // navigate(`/app/cards/edit/${newCard.id}`);
+      // navigate(`/app/cards/edit/${response.data.id}`);
     } catch (error) {
-      setError(getUserFriendlyError(error.message));
+      console.error('Error creating business card:', error);
+      setError(getUserFriendlyError(error.response?.data?.detail || error.message));
     }
   };
 
@@ -288,9 +285,6 @@ const BusinessCards = () => {
   const handleDeleteCard = async (id) => {
     if (window.confirm('Are you sure you want to delete this card?')) {
       try {
-        // In a real implementation, make an API call
-        // await fetch(`/api/v1/business-cards/${id}`, { method: 'DELETE' });
-        
         // Check if this is the primary card
         const cardToDelete = cards.find(card => card.id === id);
         if (cardToDelete?.is_primary && cards.length > 1) {
@@ -298,34 +292,46 @@ const BusinessCards = () => {
           return;
         }
         
+        // Call the FastAPI endpoint to delete the card
+        await axios.delete(`/api/v1/users/business-card/${id}`);
+        
+        // Update local state
         setCards(cards.filter(card => card.id !== id));
       } catch (error) {
-        setError(getUserFriendlyError(error.message));
+        console.error('Error deleting business card:', error);
+        setError(getUserFriendlyError(error.response?.data?.detail || error.message));
       }
     }
   };
 
   // View card handler
   const handleViewCard = (id) => {
-    alert(`View card with ID: ${id}`);
-    // This would typically navigate to preview: navigate(`/app/cards/view/${id}`);
+    const card = cards.find(c => c.id === id);
+    if (card && card.slug) {
+      window.open(`/profile/${card.slug}`, '_blank');
+    } else {
+      alert(`View card with ID: ${id}`);
+    }
   };
 
   // Set card as primary
   const handleSetPrimary = async (id) => {
     try {
-      // In a real implementation, make an API call
-      // await fetch(`/api/v1/business-cards/${id}/set-primary`, { method: 'PUT' });
+      // Call the FastAPI endpoint to set the card as primary
+      const response = await axios.put(`/api/v1/users/business-card/${id}/set-primary`);
       
-      // Update local state
-      setCards(cards.map(card => ({
-        ...card,
-        is_primary: card.id === id
-      })));
-      
-      alert(`Card #${id} set as primary`);
+      if (response.data) {
+        // Update local state
+        setCards(cards.map(card => ({
+          ...card,
+          is_primary: card.id === id
+        })));
+        
+        alert(`Card #${id} set as primary`);
+      }
     } catch (error) {
-      setError(getUserFriendlyError(error.message));
+      console.error('Error setting card as primary:', error);
+      setError(getUserFriendlyError(error.response?.data?.detail || error.message));
     }
   };
 
@@ -388,7 +394,7 @@ const BusinessCards = () => {
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">Total Views</p>
-              <p className="text-xl font-bold">{cards.reduce((sum, card) => sum + card.views, 0)}</p>
+              <p className="text-xl font-bold">{cards.reduce((sum, card) => sum + (card.views || 0), 0)}</p>
             </div>
             <div className="bg-purple-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">Saved Contacts</p>

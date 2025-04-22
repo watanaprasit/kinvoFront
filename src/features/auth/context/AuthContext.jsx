@@ -290,7 +290,7 @@ export const AuthProvider = ({ children }) => {
 
     try {
       // Get user data from auth.users table
-      const freshUserData = await ProfileService.getUserByEmail(userData.email);
+      const freshUserData = await BusinessCardService.getUserByEmail(userData.email);
 
       if (!freshUserData?.id) {
         throw new Error('User ID not found');

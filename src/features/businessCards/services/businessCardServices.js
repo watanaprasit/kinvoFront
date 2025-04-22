@@ -13,6 +13,26 @@ export class BusinessCardService {
     }
   }
 
+  static async getUserByEmail(email) {
+    try {
+      const response = await api.get(`/api/v1/users/by-email/${email}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user by email:', error);
+      throw error;
+    }
+  }
+
+  static async getBusinessCardsByUserId(userId) {
+    try {
+      const response = await api.get(`/api/v1/users/${userId}/business-cards`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching business cards by user ID:', error);
+      throw error;
+    }
+  }
+
   // Get the primary business card
   static async getPrimaryBusinessCard() {
     try {
