@@ -4,14 +4,14 @@ import { useAuth } from '../../features/auth/context/AuthContext';
 import { getUserFriendlyError } from '../../library/utils/formatters';
 import CardList from '../../features/businessCards/components/CardList';
 import CardCreator from '../../features/businessCards/components/CardCreator';
-import axios from 'axios'; 
+import { BusinessCardService } from '../../features/businessCards/services/businessCardServices';
 
 const BusinessCards = () => {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   
   // Subscription tier card limits
   const CARD_LIMITS = {
@@ -34,25 +34,27 @@ const BusinessCards = () => {
   // Fetch business cards from the backend API
   useEffect(() => {
     const fetchCards = async () => {
-      if (!user?.id) return;
+      if (!isAuthenticated || !user?.id) {
+        setLoading(false);
+        return;
+      }
       
       try {
         setLoading(true);
         
-        // Call the FastAPI endpoint to get business cards
-        const response = await axios.get(`/api/v1/users/${user.id}/business-cards`);
-        
-        setCards(response.data || []);
-        setLoading(false);
+        // Use the service to fetch cards
+        const fetchedCards = await BusinessCardService.getBusinessCardsByUserId(user.id);
+        setCards(fetchedCards || []);
       } catch (error) {
         console.error('Error fetching business cards:', error);
         setError(getUserFriendlyError(error.response?.data?.detail || error.message));
+      } finally {
         setLoading(false);
       }
     };
 
     fetchCards();
-  }, [user]);
+  }, [user, isAuthenticated]);
 
   // Create new card handler
   const handleCreateCard = () => {
@@ -66,6 +68,10 @@ const BusinessCards = () => {
   // Handle template selection
   const handleTemplateSelect = async (newCardData) => {
     try {
+      if (!user?.id) {
+        throw new Error('User not logged in');
+      }
+      
       // Create a FormData object to send file uploads and form data
       const formData = new FormData();
       
@@ -75,7 +81,7 @@ const BusinessCards = () => {
       
       if (newCardData.title) formData.append('title', newCardData.title);
       if (newCardData.bio) formData.append('bio', newCardData.bio); 
-      if (newCardData.email) formData.append('email', newCardData.email || user?.email || '');
+      formData.append('email', newCardData.email || user?.email || '');
       if (newCardData.website) formData.append('website', newCardData.website || '');
       
       // Handle contact information as JSON
@@ -94,22 +100,12 @@ const BusinessCards = () => {
         formData.append('company_logo', newCardData.company_logo);
       }
       
-      // Send the request to create a new business card
-      const response = await axios.post('/api/v1/users/business-card', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      // Use the service to create the card
+      const newCard = await BusinessCardService.createBusinessCard(user.id, formData);
       
       // Add the new card to the state
-      if (response.data) {
-        setCards([...cards, response.data]);
-      }
-      
+      setCards([...cards, newCard]);
       setIsTemplateModalOpen(false);
-      
-      // In a real implementation, navigate to editor:
-      // navigate(`/app/cards/edit/${response.data.id}`);
     } catch (error) {
       console.error('Error creating business card:', error);
       setError(getUserFriendlyError(error.response?.data?.detail || error.message));
@@ -133,8 +129,8 @@ const BusinessCards = () => {
           return;
         }
         
-        // Call the FastAPI endpoint to delete the card
-        await axios.delete(`/api/v1/users/business-card/${id}`);
+        // Use the service to delete the card
+        await BusinessCardService.deleteBusinessCard(id);
         
         // Update local state
         setCards(cards.filter(card => card.id !== id));
@@ -158,23 +154,22 @@ const BusinessCards = () => {
   // Set card as primary
   const handleSetPrimary = async (id) => {
     try {
-      // Call the FastAPI endpoint to set the card as primary
-      const response = await axios.put(`/api/v1/users/business-card/${id}/set-primary`);
+      // Use the service to set the card as primary
+      await BusinessCardService.setPrimaryBusinessCard(id);
       
-      if (response.data) {
-        // Update local state
-        setCards(cards.map(card => ({
-          ...card,
-          is_primary: card.id === id
-        })));
-        
-        alert(`Card #${id} set as primary`);
-      }
+      // Update local state
+      setCards(cards.map(card => ({
+        ...card,
+        is_primary: card.id === id
+      })));
+      
+      alert(`Card #${id} set as primary`);
     } catch (error) {
       console.error('Error setting card as primary:', error);
       setError(getUserFriendlyError(error.response?.data?.detail || error.message));
     }
   };
+
 
   return (
     <div className="space-y-6">

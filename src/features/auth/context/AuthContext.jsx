@@ -1,3 +1,4 @@
+// Improved AuthContext implementation
 import { createContext, useState, useContext, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { BusinessCardService } from '../../businessCards/services/businessCardServices';
@@ -25,12 +26,10 @@ export const AuthProvider = ({ children }) => {
       
       if (!token || !savedUser) {
         // No token or user data, clear any potentially stale data
-        if (user) {
-          setUser(null);
-          setUserProfile(null);
-          setBusinessCards([]);
-          setPrimaryCard(null);
-        }
+        setUser(null);
+        setUserProfile(null);
+        setBusinessCards([]);
+        setPrimaryCard(null);
         setIsLoading(false);
         return;
       }
@@ -69,7 +68,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      // Get user data from auth.users table
+      // Get user data by email
       const freshUserData = await BusinessCardService.getUserByEmail(userData.email);
 
       if (!freshUserData?.id) {
@@ -88,6 +87,11 @@ export const AuthProvider = ({ children }) => {
         slug: freshUserData.slug,
         photo_url: null
       };
+
+      // Format photo URL if exists
+      if (profile.photo_url) {
+        profile.photo_url = BusinessCardService.formatPhotoUrl(profile.photo_url);
+      }
 
       const updatedUser = {
         ...freshUserData,
@@ -153,13 +157,8 @@ export const AuthProvider = ({ children }) => {
     try {
       // If updating the primary business card
       if (primaryCard?.id) {
-        let updatedCard;
-        
-        if (updatedProfile instanceof FormData) {
-          updatedCard = await BusinessCardService.updateBusinessCard(primaryCard.id, updatedProfile);
-        } else {
-          updatedCard = await BusinessCardService.updateBusinessCard(primaryCard.id, updatedProfile);
-        }
+        // Use the service to update the card
+        const updatedCard = await BusinessCardService.updateBusinessCard(primaryCard.id, updatedProfile);
         
         // Ensure photo_url is properly formatted
         if (updatedCard?.photo_url) {
@@ -195,18 +194,27 @@ export const AuthProvider = ({ children }) => {
         return updatedCard;
       } else {
         // Creating a new primary business card
-        let newCard;
+        // Use the service to create the card, ensuring is_primary is set
+        const formData = updatedProfile instanceof FormData ? updatedProfile : new FormData();
         
         if (updatedProfile instanceof FormData) {
           // Add is_primary flag if creating a new card
-          updatedProfile.append('is_primary', 'true');
-          newCard = await BusinessCardService.createBusinessCard(user.id, updatedProfile);
+          formData.append('is_primary', 'true');
         } else {
-          newCard = await BusinessCardService.createBusinessCard(user.id, {
-            ...updatedProfile,
-            is_primary: true
-          });
+          // Add fields to formData if it's a regular object
+          for (const [key, value] of Object.entries(updatedProfile)) {
+            if (value !== undefined && value !== null) {
+              if (typeof value === 'object' && !(value instanceof File)) {
+                formData.append(key, JSON.stringify(value));
+              } else {
+                formData.append(key, value);
+              }
+            }
+          }
+          formData.append('is_primary', 'true');
         }
+        
+        const newCard = await BusinessCardService.createBusinessCard(user.id, formData);
         
         // Ensure photo_url is properly formatted
         if (newCard?.photo_url) {
@@ -254,12 +262,8 @@ export const AuthProvider = ({ children }) => {
         throw new Error(`You've reached your limit of ${maxCards} business cards for your current subscription tier`);
       }
 
-      let newCard;
-      if (cardData instanceof FormData) {
-        newCard = await BusinessCardService.createBusinessCard(user.id, cardData);
-      } else {
-        newCard = await BusinessCardService.createBusinessCard(user.id, cardData);
-      }
+      // Use the service to create the card
+      const newCard = await BusinessCardService.createBusinessCard(user.id, cardData);
 
       // Update businessCards state
       setBusinessCards(prevCards => [...prevCards, newCard]);
@@ -277,12 +281,8 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      let updatedCard;
-      if (cardData instanceof FormData) {
-        updatedCard = await BusinessCardService.updateBusinessCard(cardId, cardData);
-      } else {
-        updatedCard = await BusinessCardService.updateBusinessCard(cardId, cardData);
-      }
+      // Use the service to update the card
+      const updatedCard = await BusinessCardService.updateBusinessCard(cardId, cardData);
 
       // Update businessCards state
       setBusinessCards(prevCards => {
@@ -323,16 +323,17 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      // Check if this is the primary card
-      const isRemovingPrimaryCard = businessCards.find(
-        card => card.id === cardId && card.is_primary
-      );
-
       // Cannot delete if it's the only card
       if (businessCards.length === 1) {
         throw new Error('You must have at least one business card');
       }
 
+      // Check if this is the primary card
+      const isRemovingPrimaryCard = businessCards.find(
+        card => card.id === cardId && card.is_primary
+      );
+
+      // Use the service to delete the card
       await BusinessCardService.deleteBusinessCard(cardId);
 
       // Update businessCards state
@@ -344,10 +345,8 @@ export const AuthProvider = ({ children }) => {
         const newPrimaryCard = businessCards.find(card => card.id !== cardId);
         
         if (newPrimaryCard) {
-          await BusinessCardService.updateBusinessCard(newPrimaryCard.id, { is_primary: true });
-          
-          // Update the card in our state
-          const updatedCard = { ...newPrimaryCard, is_primary: true };
+          // Make the card primary
+          const updatedCard = await BusinessCardService.updateBusinessCard(newPrimaryCard.id, { is_primary: true });
           
           setPrimaryCard(updatedCard);
           setUserProfile(updatedCard);
@@ -398,8 +397,8 @@ export const AuthProvider = ({ children }) => {
         return card;
       }
 
-      // Update the card to be primary
-      const updatedCard = await BusinessCardService.updateBusinessCard(cardId, { is_primary: true });
+      // Use the service to set the card as primary
+      const updatedCard = await BusinessCardService.setPrimaryBusinessCard(cardId);
       
       // Update businessCards state to reflect changes in primary status
       setBusinessCards(prevCards => {
