@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../../auth/context/AuthContext';
 import { StyledCardCreator } from './styles';

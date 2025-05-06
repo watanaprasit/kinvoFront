@@ -697,7 +697,7 @@ const SlugProfile = () => {
       
       try {
         // Updated endpoint to fetch business card data using the slug
-        const response = await fetch(`/api/v1/business-cards/slug/${slug}`);
+        const response = await fetch(`/api/v1/business-card/slug/${slug}`);
         
         if (!response.ok) {
           // Handle different HTTP errors
